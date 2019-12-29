@@ -6,10 +6,9 @@ import base64
 from diskcache import Cache as dc
 from io import StringIO
 
-from sitefab.Plugins import SitePreparsing
+from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
-from sitefab import files
-from sitefab import utils
+
 
 class FrozenImages(SitePreparsing):
     """

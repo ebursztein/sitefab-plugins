@@ -2,7 +2,7 @@ import os
 import json
 from tabulate import tabulate
 
-from sitefab.Plugins import SiteRendering
+from sitefab.plugins import SiteRendering
 from sitefab.SiteFab import SiteFab
 from sitefab import files
 

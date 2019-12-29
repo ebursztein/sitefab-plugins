@@ -5,7 +5,7 @@ from pathlib import Path
 from tabulate import tabulate
 
 from sitefab import files
-from sitefab.Plugins import SiteRendering
+from sitefab.plugins import SiteRendering
 from sitefab.SiteFab import SiteFab
 
 

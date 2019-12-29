@@ -1,4 +1,4 @@
-from sitefab.Plugins import TemplateFilter
+from sitefab.plugins import TemplateFilter
 
 
 class str_to_list(TemplateFilter):

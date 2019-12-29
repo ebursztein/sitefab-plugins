@@ -1,6 +1,6 @@
 import shutil
 from tqdm import tqdm
-from sitefab.Plugins import SitePreparsing
+from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
 
 

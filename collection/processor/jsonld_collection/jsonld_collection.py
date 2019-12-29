@@ -1,6 +1,6 @@
 import json
 
-from sitefab.Plugins import CollectionProcessor
+from sitefab.plugins import CollectionProcessor
 from sitefab.SiteFab import SiteFab
 
 

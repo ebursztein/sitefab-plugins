@@ -1,4 +1,4 @@
-from sitefab.Plugins import TemplateFilter
+from sitefab.plugins import TemplateFilter
 
 
 class format_ts(TemplateFilter):

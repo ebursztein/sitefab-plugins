@@ -1,7 +1,7 @@
 import gensim
 from gensim import corpora, models, similarities
 
-from sitefab.Plugins import SiteProcessor
+from sitefab.plugins import SiteProcessor
 from sitefab.SiteFab import SiteFab
 from sitefab import utils
 

@@ -1,14 +1,14 @@
 import os
 import json
 
-from sitefab.Plugins import SiteRendering
+from sitefab.plugins import SiteRendering
 from sitefab.SiteFab import SiteFab
 from sitefab import files
 
 
 class JSPosts(SiteRendering):
 
-    #@profile
+    # @profile
     def process(self, unused, site, config):
         plugin_name = "js_posts"
         js_filename = "js_posts.js"

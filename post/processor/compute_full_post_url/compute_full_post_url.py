@@ -1,4 +1,4 @@
-from sitefab.Plugins import PostProcessor
+from sitefab.plugins import PostProcessor
 from sitefab.SiteFab import SiteFab
 
 
