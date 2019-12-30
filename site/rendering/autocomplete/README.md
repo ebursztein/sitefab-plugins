@@ -77,15 +77,12 @@ frequency * num_document * document_coeff
 
 Where document coeff is 10 by default. Frontmatter fields get their frequency multiplied by 10 to ensure they are the most represented.
 
-
-
-
 Note you most likely want to use glup to preload the trie data.
 FIXME glup example.
 
 ## Changelog
-- 12/28/19
- - Moved to the new nlp stack and simplified the code
+
+- 12/28/19 Moved to the new nlp stack and simplified the code
 - 05/29/17
  - Fixed speed issue
  - Added better scoring to ensure autocompletion include all the needed term

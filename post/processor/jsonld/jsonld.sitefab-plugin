@@ -5,6 +5,6 @@ Dependencies = compute_full_post_url
 
 [Documentation]
 Filename = README.md
-Description = Compute Jsonld object for each page based on meta
-Version = 1
+Description = Generate a Jsonld object for each page based on its meta.
+Version = 1.1
 

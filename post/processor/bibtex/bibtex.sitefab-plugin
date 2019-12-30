@@ -4,6 +4,6 @@ Module = bibtex
 
 [Documentation]
 Filename = README.md
-Description = Compute Bibtex info for each publication based on meta
-Version = 1
+Description = Compute Bibtex info for each publication based on its meta.
+Version = 1.1
 

@@ -4,9 +4,9 @@ Module = image_info
 Dependencies =  copy_dir
 
 [Documentation]
-Description = Compute various images info
+Description = Compute various images metadata.
 Filename = README.md
-Version = 1.0
+Version = 1.1
 
 [Configuration]
 Filename = "config.yaml"

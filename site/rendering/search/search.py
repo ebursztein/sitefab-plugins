@@ -13,7 +13,7 @@ class Search(SiteRendering):
         plugin_name = "search"
         js_filename = "search.js"
         output_path = config.output_path
-        num_terms = config.num_terms
+        num_terms = config.num_terms_per_post
 
         log_info = "base javascript: %s<br>ouput:%s%s<br>" % (
             js_filename, output_path, js_filename)

@@ -14,7 +14,8 @@ Add the following snippet to your template to display the jsonld of the page.
 
 ## Changelog
 
-- 12/27/16 intial version
+- 29/12/19 Refactored for new plugin system and python 3.
+- 12/27/16 intial version.
 
 ## Credits
 

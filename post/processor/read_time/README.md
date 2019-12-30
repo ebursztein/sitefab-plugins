@@ -14,13 +14,14 @@ Add the following snippet to your template to display the time it takes to read 
 
 ## Changelog
 
-- 12/27/16 initial version
+- 29/12/19 Refactored for new plugin system and python 3.
+- 12/27/16 Initial version.
 
 ## Credits
 
 **Author**: Elie Bursztein
 
-Computation use [Medium formula](https://help.medium.com/hc/en-us/articles/214991667-Read-time):
+Computation used [Medium formula](https://help.medium.com/hc/en-us/articles/214991667-Read-time):
 
 >Read time is based on the average reading speed of an adult (roughly 275 WPM). We take the total word count of a post and translate it into minutes. Then, we add 12 seconds for each inline image.
 

@@ -21,9 +21,10 @@ Assuming you have generated a 120x120 thumbnail you can access it as follow:
 ```
 
 ## Changlog
-- v1
-    - initial version
+
+- 29/12/19 Refactored for new plugin system and python 3.
+- 2017 Initial version.
 
 ## Credit
 
-Plugin by Elie Bursztein.
+Elie Bursztein.

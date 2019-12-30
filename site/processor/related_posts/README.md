@@ -18,6 +18,7 @@ The plugin use the [gensim](https://radimrehurek.com/gensim/) python package.
 
 ## Changelog
 
+- 29/12/19 Refactored for new plugin system and python 3.
 - 06/29/17 Refactored code to make the list of related post easier to work with by making them look like normal post objects.
 - 12/27/16 Initial version released
 

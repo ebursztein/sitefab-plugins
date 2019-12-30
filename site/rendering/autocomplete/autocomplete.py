@@ -19,6 +19,7 @@ class Autocomplete(SiteRendering):
         # configuration
         output_path = config.output_path
         num_suggestions = config.num_suggestions
+        excluded_terms = config.excluded_terms
 
         log_info = "base javascript: %s<br>ouput:%s%s" % (
             js_filename, output_path, js_filename)
@@ -47,11 +48,15 @@ class Autocomplete(SiteRendering):
 
             # title terms
             for term in post.nlp.title_terms:
+                if term in excluded_terms:
+                    continue
                 term_post_frequency[term[0]] += 1
                 term_score[term[0]] += term[1] * 2
 
             # other terms
             for term in post.nlp.terms:
+                if term in excluded_terms:
+                    continue
                 term_post_frequency[term[0]] += 1
                 term_score[term[0]] += term[1]
 

@@ -43,11 +43,11 @@ Here is a simple search page that allows to search  via an inputbox and via the 
 
             //This can be optimized by doing it server side
             search_init(['title', 'authors', 'conference', 'terms'])
-            
+
             // Attach the search to the search input
             var searchBox = document.getElementById('searchtop')
-            search_attach_to(searchBox, search_callback) 
-            
+            search_attach_to(searchBox, search_callback)
+
             //do the search based of url parameters if needed
             var query = getURLParameter('q');
             if (query) {
@@ -66,15 +66,20 @@ Note you most likely  want to load the search.js after the page is loaded as it 
 FIXME add a more complex example here with aync load.
 
 ## Dependencies
+
 This plugin requires the following plugins:
 
 - nlp: core nlp part of sitefab that do all the terms extraction
 - js_posts: Provide a javascript representation of the posts used for display
 
 ## See also
+
 if you wish to add aucomplete to your search then look at the `autocomplete` plugin.
 
 ## Changelog
+
+- 29/12/19 Refactored for new plugin system and python
+
 - 06/01/17
     - Refactored to use the nlp and js_posts plugins making the search more modular, lighter and faster.
     - Reworked the doc and examples to simplify it.
@@ -84,7 +89,7 @@ if you wish to add aucomplete to your search then look at the `autocomplete` plu
     -  Added TFIDF top keywords which can be parameterized via the config
     - Added a fully working example in the documentation
 
-- 12/27/16 
+- 12/27/16
     - intial version
 
 ## Credits

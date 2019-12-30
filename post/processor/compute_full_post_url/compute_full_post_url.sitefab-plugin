@@ -4,5 +4,5 @@ Module = compute_full_post_url
 
 [Documentation]
 Filename = README.md
-Description = Compute the full qualified url for each post and store in the post.meta under full_url
-Version = 1
+Description = Compute each post fully qualified URL and store it in the post.meta under full_url field.
+Version = 1.1

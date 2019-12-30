@@ -69,21 +69,22 @@ Here is a simple search page that show the autocompletion via an inputbox:
 
 ## Scoring
 
-Score are computed server side. Basically the fomula is 
+Score are computed server side. Basically the fomula is
 
 ```math
 frequency * num_document * document_coeff
 ```
 
-Where document coeff is 10 by default. Frontmatter fields get their frequency multiplied by 10 to ensure they are the most represented.
-
-
+Where document coeff is between [0,1] by default. Frontmatter fields get their frequency multiplied by 2 to ensure they are the most represented.
 
 
 Note you most likely want to use glup to preload the trie data.
 FIXME glup example.
 
 ## Changelog
+
+- 29/12/19 Refactored for new plugin system, nlp stack and python3.
+
 - 05/29/17
  - Fixed speed issue
  - Added better scoring to ensure autocompletion include all the needed term

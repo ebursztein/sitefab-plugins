@@ -5,7 +5,4 @@ Module = related_posts
 [Documentation]
 Documentation = README.md
 Description = Use LSI to compute related posts.
-Version = 1.0
-
-[Configuration]
-Filename = config.yaml
+Version = 1.2

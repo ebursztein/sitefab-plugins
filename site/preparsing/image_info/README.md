@@ -24,8 +24,10 @@ This plugin requires the [Pillow python package](https://python-pillow.org/).
 
 
 ## Changlog
-- 06/02/17
-    - initial version
+
+- 29/12/19 Refactored for new plugin system and python 3.
+- 06/02/17 initial version
 
 ## Credit
+
 Plugin by Elie Bursztein.

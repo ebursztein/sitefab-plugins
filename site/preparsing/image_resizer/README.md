@@ -15,9 +15,10 @@ quality: 90
 Nothing to do, images will just have the right size :)
 
 ## Changlog
-- v1
-    - initial version
+
+- 29/12/19 Refactored for new plugin system and python 3.
+- 2017 initial version
 
 ## Credit
 
-Plugin by Elie Bursztein.
+Elie Bursztein.
