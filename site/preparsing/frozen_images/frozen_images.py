@@ -61,11 +61,12 @@ class FrozenImages(SitePreparsing):
                 os.makedirs(img_output_path)
 
             img_output_path = os.path.join(output_dir, sub_path)
-            output_filename = "%s.frozen%s" % (
-                img_info['name'], img_info['extension'])
+            output_filename = "%s.frozen%s" % (img_info['name'],
+                                               img_info['extension'])
+
             output_full_path = os.path.join(img_output_path, output_filename)
-            output_web_path = output_full_path.replace(
-                "\\", "/").replace(site_output_dir, "/")  # frozen
+            output_web_path = output_full_path.replace("\\", "/")
+            output_web_path = output_web_path.replace(site_output_dir, "/")
 
             # cache fetch
             start = time.time()
@@ -131,12 +132,11 @@ class FrozenImages(SitePreparsing):
             log += 'Img result (from base64): <img src="%s">' % img_base64
             progress_bar.update(1)
 
-        # reporting data
         # expose the list of resized images
         site.plugin_data['frozen_images'] = frozen_images
-        cache.close()
 
-        # FIXME: add counter output
+        progress_bar.close()
+        cache.close()
 
         if errors:
             return (SiteFab.ERROR, plugin_name, log)
