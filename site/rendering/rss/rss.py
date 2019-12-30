@@ -9,25 +9,26 @@ from sitefab.parser.parser import Parser
 class Rss(SiteRendering):
 
     def process(self, unused, site, config):
-        PLUGIN_DIR = Path(__file__).parent
-        template_name = PLUGIN_DIR / config.template
+        template_name = config.template
 
         config.banner = "%s%s" % (site.config.url, config.banner)
         config.icon = "%s%s" % (site.config.url, config.icon)
         config.logo_svg = "%s%s" % (site.config.url, config.logo_svg)
 
-        import pprint
-        print('\n\n')
-        pprint.pprint(config)
-        # Loading
+        # rendering template
+        if template_name not in site.jinja2.list_templates():
+            return SiteFab.ERROR, "rss", ("template %s not found" %
+                                          template_name)
         template = site.jinja2.get_template(str(template_name))
-        # return SiteFab.ERROR, "rss", "%s not found" % template_name
-        print(site.jinja2.list_template())
-        print(template)
-        quit()
 
-        parser = Parser(config.parser_config, site)
+        # custom parser
+        parser_tpl_path = Path(config.parser.template_dir)
+        config.parser.templates_path = (site.config.root_dir /
+                                        parser_tpl_path)
+        config.parser = Parser.make_config(config.parser)
+        parser = Parser(config.parser, site)
 
+        # generating feed
         rss_items = []
         count = 0
         posts = []
