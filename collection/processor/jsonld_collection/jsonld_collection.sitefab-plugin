@@ -4,6 +4,6 @@ Module = jsonld_collection
 Dependencies = compute_full_collection_url
 
 [Documentation]
+Version = 1.1
 Filename = README.md
-Description = Compute Jsonld object for each collection based on meta
-
+Description = Compute collection jsonld object.
