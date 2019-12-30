@@ -1,13 +1,13 @@
 import os
-from PIL import Image
-from tqdm import tqdm
 import time
 from io import BytesIO
 
+from PIL import Image
+from tqdm import tqdm
+
+from sitefab import files, utils
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
-from sitefab import files
-from sitefab import utils
 
 
 class ImageInfo(SitePreparsing):

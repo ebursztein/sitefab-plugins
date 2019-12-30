@@ -3,7 +3,7 @@ from PIL import Image
 from tqdm import tqdm
 import time
 from diskcache import Cache as dc
-from io import StringIO
+from io import BytesIO
 
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
@@ -19,8 +19,7 @@ class ImageResizer(SitePreparsing):
         input_dir = config.input_dir
         max_width = config.max_width
         quality = config.quality
-        cache_file = os.path.join(site.config.dir.cache, plugin_name)
-        site_output_dir = site.config.dir.output
+        cache_file = site.config.root_dir / site.config.dir.cache / plugin_name
 
         # opening cache
         start = time.time()
@@ -38,13 +37,15 @@ class ImageResizer(SitePreparsing):
         images = site.plugin_data['image_info'].values()
 
         # processing images
-        progress_bar = tqdm(total=len(images), unit=' image', desc="Resizing images", leave=False)
+        progress_bar = tqdm(total=len(images), unit=' image',
+                            desc="Resizing images", leave=False)
         for img_info in images:
             thumb = {}
             log += "<br><br><h2>%s</h2>" % (img_info['full_path'])
 
             if img_info['width'] < max_width:
-                log += "Image width %s < max_width: %s skipping" % (img_info['width'], max_width)
+                log += "Image width %s < max_width: %s skipping" % (
+                    img_info['width'], max_width)
                 continue
 
             # cache fetch
@@ -52,7 +53,7 @@ class ImageResizer(SitePreparsing):
             cached_version = cache.get(img_info['hash'])
             cache_timing['fetching'] += time.time() - start
 
-            #Do we have a cached version else creating it
+            # Do we have a cached version else creating it
             if cached_version:
                 raw_image = cached_version['raw_image']
             else:
@@ -61,7 +62,8 @@ class ImageResizer(SitePreparsing):
                 raw_image = f.read()
                 f.close()
 
-                log += "Image loading time:<i>%s</i><br>" % (round(time.time() - start, 5))
+                log += "Image loading time:<i>%s</i><br>" % (
+                    round(time.time() - start, 5))
                 cached_version = {}
                 cached_version['raw_image'] = raw_image
                 cached_version['max_width'] = -1
@@ -80,27 +82,30 @@ class ImageResizer(SitePreparsing):
 
                 ratio = max_width / float(img_width)
                 new_height = int(img_height * ratio)
-                resized_img = img.resize((max_width, new_height), Image.LANCZOS)
+                resized_img = img.resize(
+                    (max_width, new_height), Image.LANCZOS)
                 log += "Image resized to %sx%s<br>" % (max_width, new_height)
 
                 stringio = StringIO()
-                pil_extension_codename =  img_info['pil_extension']
+                pil_extension_codename = img_info['pil_extension']
                 if pil_extension_codename == 'PNG':
-                    resized_img.save(stringio, pil_extension_codename, optimize=True, compress_level=9)#
+                    resized_img.save(
+                        stringio, pil_extension_codename, optimize=True, compress_level=9)
                 elif pil_extension_codename == 'WEBP':
                     if resized_img.mode != "RGBA":
                         resized_img = resized_img.convert('RGBA')
-                    resized_img.save(stringio, pil_extension_codename, optimize=True, compress_level=9, quality=quality)#
-                else: #jpg
+                    resized_img.save(stringio, pil_extension_codename,
+                                     optimize=True, compress_level=9, quality=quality)
+                else:  # jpg
                     if resized_img.mode != "RGB":
                         resized_img = resized_img.convert('RGB')
-                    resized_img.save(stringio, pil_extension_codename, optimize=True, quality=quality, compress_level=9)
+                    resized_img.save(stringio, pil_extension_codename,
+                                     optimize=True, quality=quality, compress_level=9)
                 img.close()
 
                 cached_version['max_width'] = max_width
                 cached_version['resized_img'] = stringio
                 log += "resize time:%ss<br>" % (round(time.time() - start, 5))
-
 
             # writing to disk
             start = time.time()
@@ -111,8 +116,10 @@ class ImageResizer(SitePreparsing):
 
             # update image info to reflect new size
             width, height = resized_img.size
-            site.plugin_data['image_info'][img_info['web_path']]['width'] = width
-            site.plugin_data['image_info'][img_info['web_path']]['height'] = height
+            site.plugin_data['image_info'][img_info['web_path']
+                                           ]['width'] = width
+            site.plugin_data['image_info'][img_info['web_path']
+                                           ]['height'] = height
 
             # cache storing
             start_set = time.time()
@@ -120,7 +127,7 @@ class ImageResizer(SitePreparsing):
             cache_timing["writing"] += time.time() - start_set
 
         cache.close()
-        #FIXME: add counter output
+        # FIXME: add counter output
 
         if errors:
             return (SiteFab.ERROR, plugin_name, log)

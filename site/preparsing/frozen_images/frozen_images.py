@@ -22,7 +22,7 @@ class FrozenImages(SitePreparsing):
         frozen_width = 42
         input_dir = config.input_dir
         output_dir = config.output_dir
-        cache_file = os.path.join(site.config.dir.cache, plugin_name)
+        cache_file = site.config.root_dir / site.config.dir.cache / plugin_name
         site_output_dir = site.config.dir.output
         blur_value = 2
 
