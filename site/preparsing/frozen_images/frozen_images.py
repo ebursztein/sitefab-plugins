@@ -4,7 +4,7 @@ from tqdm import tqdm
 import time
 import base64
 from diskcache import Cache as dc
-from io import StringIO
+from io import BytesIO
 
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
@@ -38,7 +38,7 @@ class FrozenImages(SitePreparsing):
         cache_timing = {
             'opening': time.time() - start,
             'fetching': 0,
-             'writing': 0
+            'writing': 0
         }
 
         # using the list of images from image_info
@@ -61,9 +61,11 @@ class FrozenImages(SitePreparsing):
                 os.makedirs(img_output_path)
 
             img_output_path = os.path.join(output_dir, sub_path)
-            output_filename = "%s.frozen%s" % (img_info['name'], img_info['extension'])
+            output_filename = "%s.frozen%s" % (
+                img_info['name'], img_info['extension'])
             output_full_path = os.path.join(img_output_path, output_filename)
-            output_web_path = output_full_path.replace("\\", "/").replace(site_output_dir, "/") #frozen
+            output_web_path = output_full_path.replace(
+                "\\", "/").replace(site_output_dir, "/")  # frozen
 
             # cache fetch
             start = time.time()
@@ -82,21 +84,26 @@ class FrozenImages(SitePreparsing):
                 f = open(img_info['full_path'], 'rb')
                 raw_image = f.read()
                 f.close()
-                log += "Image loading time:<i>%s</i><br>" % (round(time.time() - start, 3))
-                img = Image.open(StringIO(raw_image))
+                log += "Image loading time:<i>%s</i><br>" % (
+                    round(time.time() - start, 3))
+                img = Image.open(BytesIO(raw_image))
 
                 # width and height
                 width, height = img.size
                 ratio = float(frozen_width) / width
                 frozen_height = int(height * ratio)  # preserve the ratio
-                log += "size: %sx%s<br>"  % (width, height)
+                log += "size: %sx%s<br>" % (width, height)
                 log += "frozen width:%sx%s<br>"
-                resized_img = img.resize((frozen_width, frozen_height), Image.LANCZOS)
-                if resized_img.mode == "P": # PIL complain if we don't force the conversion first
+                resized_img = img.resize((frozen_width, frozen_height))
+
+                # PIL complain if we don't force the conversion first
+                if resized_img.mode == "P":
                     resized_img = img.convert('RGBA')
                 resized_img = resized_img.convert('RGB')
-                resized_img = resized_img.filter(ImageFilter.GaussianBlur(blur_value))
-                stringio_file = StringIO()
+
+                resized_img = resized_img.filter(
+                    ImageFilter.GaussianBlur(blur_value))
+                stringio_file = BytesIO()
                 resized_img.save(stringio_file, 'JPEG', optimize=True)
 
             # cache storing
@@ -124,12 +131,12 @@ class FrozenImages(SitePreparsing):
             log += 'Img result (from base64): <img src="%s">' % img_base64
             progress_bar.update(1)
 
-
         # reporting data
-        site.plugin_data['frozen_images'] = frozen_images # expose the list of resized images
+        # expose the list of resized images
+        site.plugin_data['frozen_images'] = frozen_images
         cache.close()
 
-        #FIXME: add counter output
+        # FIXME: add counter output
 
         if errors:
             return (SiteFab.ERROR, plugin_name, log)
