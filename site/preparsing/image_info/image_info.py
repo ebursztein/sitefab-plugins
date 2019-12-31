@@ -1,11 +1,14 @@
 import os
 import time
 from io import BytesIO
-from tabulate import tabulate
+
 from PIL import Image
+from tabulate import tabulate
 from tqdm import tqdm
 
-from sitefab import files, utils
+from sitefab import files
+from sitefab.image import normalize_image_extension, read_image_bytes
+from sitefab.image import image_hash
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
 
@@ -40,12 +43,14 @@ class ImageInfo(SitePreparsing):
         log_table = []
         for image_full_path in images:
             row = [image_full_path]
-            # Creating needed directories
-            img_path, img_filename = os.path.split(image_full_path)
 
+            disk_dir = image_full_path.parents[0]
+            img_filename = image_full_path.name
+            file_size = image_full_path.stat().st_size
             # File info extraction
-            img_name, img_extension = os.path.splitext(img_filename)
-            pil_extension_codename, web_extension = utils.get_img_extension_alternative_naming(img_extension)  # noqa
+            img_stem = image_full_path.stem
+            img_extension = image_full_path.suffix
+            pil_extension_codename, web_extension = normalize_image_extension(img_extension)  # noqa
 
             # directories
             web_path = str(image_full_path).replace(str(site_output_dir), "/")
@@ -54,34 +59,29 @@ class ImageInfo(SitePreparsing):
 
             # loading
             start = time.time()
-            # We need the raw bytes to do the hashing
-            # Doing it manually as asking PIL is 10x slower.
-            f = open(image_full_path, 'rb')
-            raw_image = f.read()
-            f.close()
+            raw_image = read_image_bytes(image_full_path)
 
             io_img = BytesIO(raw_image)
             img = Image.open(io_img)
-            row.append(round(time.time() - start, 3))
-            img.close()
-
             # width and height
             width, height = img.size
             row.append("%sx%s" % (width, height))
+            img.close()
 
             # hash
             # we use the hash of the content to make sure we regnerate if
             # the image content is different
-            img_hash = utils.hexdigest(raw_image)
+            img_hash = image_hash(raw_image)
+            row.append(img_hash)
 
-            # FIXME dominante colors
+            # FIXME add dominante colors
             image_info[web_path] = {
                 "filename": img_filename,       # noqa image filename without path: photo.jpg
-                "name": img_name,               # noqa image name without path and extension: photo
+                "stem": img_stem,               # noqa image name without path and extension: photo
                 "extension": img_extension,     # noqa image extension: .jpg
 
-                "full_path": image_full_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
-                "path": img_path,               # noqa path on disk without filename: /user/elie/site/img/
+                "disk_path": image_full_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
+                "disk_dir": disk_dir,               # noqa path on disk without filename: /user/elie/site/img/
                 "web_path": web_path,           # noqa image url: /static/img/photo.jpg
                 "web_dir": web_dir,             # noqa path of the site: /static/img/
 
@@ -89,16 +89,20 @@ class ImageInfo(SitePreparsing):
                 "mime_type": web_extension,               # noqa mime-type: image/jpeg
                 "width": width,
                 "height": height,
+                "file_size": file_size,
                 "hash": img_hash
             }
             progress_bar.update(1)
             log_table.append(row)
 
-        log += tabulate(log_table, headers=['filename', 'load time', 'size'],
-                        tablefmt='html')
+            # logging
+            row.append(round(time.time() - start, 3))
+
+        log += tabulate(log_table, headers=['filename', 'size', 'hash',
+                                            'process time'], tablefmt='html')
         progress_bar.close()
 
-        # reporting data
+        # make image info available to subsequent plugins
         site.plugin_data['image_info'] = image_info  # expose images info
 
         if errors:
