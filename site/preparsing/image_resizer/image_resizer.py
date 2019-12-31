@@ -44,7 +44,7 @@ class ImageResizer(SitePreparsing):
         log_table = []
         for img_info in images:
             process_start_ts = time.time()
-            row = [img_info['hash']]
+            row = [img_info['disk_path']]
 
             if img_info['width'] < max_width:
                 log += "Image width %s < max_width: %s skipping" % (
