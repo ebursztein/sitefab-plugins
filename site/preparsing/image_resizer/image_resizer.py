@@ -1,10 +1,10 @@
-import os
 from PIL import Image
 from tqdm import tqdm
 import time
 from diskcache import Cache as dc
 from io import BytesIO
 
+from sitefab.image import save_image, convert_image, read_img_bytes
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
 
@@ -17,7 +17,8 @@ class ImageResizer(SitePreparsing):
         errors = False
         plugin_name = "image_resizer"
         max_width = config.max_width
-        quality = config.quality
+        jpeg_quality = config.jpeg_quality
+        webp_quality = config.webp_quality
         cache_file = site.config.root_dir / site.config.dir.cache / plugin_name
 
         # opening cache
@@ -56,10 +57,7 @@ class ImageResizer(SitePreparsing):
                 raw_image = cached_version['raw_image']
             else:
                 start = time.time()
-                f = open(img_info['full_path'], 'rb')
-                raw_image = f.read()
-                f.close()
-
+                raw_image = read_img_bytes(img_info['full_path'])
                 log += "Image loading time:<i>%s</i><br>" % (round(time.time()
                                                                    - start, 5))
                 cached_version = {}
@@ -87,28 +85,10 @@ class ImageResizer(SitePreparsing):
 
                 log += "Image resized to %sx%s<br>" % (max_width, new_height)
 
-                resized_img_io = BytesIO()
-                pil_extension_codename = img_info['pil_extension']
-
-                # PNG
-                if pil_extension_codename == 'PNG':
-                    resized_img.save(resized_img_io, pil_extension_codename,
-                                     optimize=True, compress_level=9)
-
-                # WEBP
-                elif pil_extension_codename == 'WEBP':
-                    if resized_img.mode != "RGBA":
-                        resized_img = resized_img.convert('RGBA')
-                    resized_img.save(resized_img_io, pil_extension_codename,
-                                     optimize=True, compress_level=9,
-                                     quality=quality)
-                # JPG
-                else:
-                    if resized_img.mode != "RGB":
-                        resized_img = resized_img.convert('RGB')
-                    resized_img.save(resized_img_io, pil_extension_codename,
-                                     optimize=True, quality=quality,
-                                     compress_level=9)
+                extension_codename = img_info['pil_extension']
+                resized_img_io = convert_image(resized_img, extension_codename,
+                                               jpeg_quality=jpeg_quality,
+                                               webp_quality=webp_quality)
 
                 cached_version['max_width'] = max_width
                 cached_version['resized_img'] = resized_img_io
@@ -116,9 +96,8 @@ class ImageResizer(SitePreparsing):
 
             # writing to disk
             start = time.time()
-            f = open(img_info['full_path'], "wb+")
-            f.write(resized_img_io.getvalue())
-            f.close()
+            save_image(resized_img_io, img_info['full_path'])
+            log += "disk write time:%ss<br>" % (round(time.time() - start, 5))
             progress_bar.update(1)
 
             # update image info to reflect new size
