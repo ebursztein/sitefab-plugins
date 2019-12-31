@@ -119,25 +119,25 @@ class Thumbnails(SitePreparsing):
                         if thumb_width * ratio > thumb_height:
                             ratio2 = thumb_width / float(img_width)
                             tmp_height = int(img_height * ratio2)
-                            thumb_img = img.resize(
-                                (thumb_width, tmp_height), Image.LANCZOS)
+                            thumb_img = img.resize((thumb_width, tmp_height),
+                                                   Image.LANCZOS)
                         else:
                             ratio2 = thumb_height / float(img_height)
                             tmp_width = int(img_width * ratio2)
-                            thumb_img = img.resize(
-                                (tmp_width, thumb_height), Image.LANCZOS)
+                            thumb_img = img.resize((tmp_width, thumb_height),
+                                                   Image.LANCZOS)
                     else:
                         ratio = float(img_width) / img_height
                         if thumb_height * ratio > thumb_width:
                             ratio2 = thumb_height / float(img_height)
                             tmp_width = int(img_width * ratio2)
-                            thumb_img = img.resize(
-                                (tmp_width, thumb_height), Image.LANCZOS)
+                            thumb_img = img.resize((tmp_width, thumb_height),
+                                                   Image.LANCZOS)
                         else:
                             ratio2 = thumb_width / float(img_width)
                             tmp_height = int(img_height * ratio2)
-                            thumb_img = img.resize(
-                                (thumb_width, tmp_height), Image.LANCZOS)
+                            thumb_img = img.resize((thumb_width, tmp_height),
+                                                   Image.LANCZOS)
 
                     scaled_width = thumb_img.width
                     scaled_height = thumb_img.height
@@ -154,7 +154,7 @@ class Thumbnails(SitePreparsing):
                     ratio_width = thumb_width / float(scaled_width)
                     if ratio_width < 1:
                         reduction_factor = 1 - ratio_width
-                         # FIXME: potentially compute using interest points
+                        # FIXME: potentially compute using interest points
                         baricenter = 0.5
                         center = float(scaled_width) * baricenter
                         left = (center - thumb_width / 2) / float(scaled_width)
@@ -171,8 +171,10 @@ class Thumbnails(SitePreparsing):
                             left -= (right - 1.0)
                             right = 1.0
 
-                        log += "baricenter:%s, reduction_factor:%s, center:%s, left:%s, right:%s<br>" % (
-                            baricenter, reduction_factor, center, left, right)
+                        log += "baricenter:%s, reduction_factor:%s, center:%s,\
+                                left:%s, right:%s<br>" % (baricenter,
+                                                          reduction_factor,
+                                                          center, left, right)
 
                     # cut height
                     ratio_height = thumb_height / float(scaled_height)
@@ -196,22 +198,26 @@ class Thumbnails(SitePreparsing):
                             top -= (bottom - 1.0)
                             bottom = 1.0
 
-                    log += "bounding box left: %s, top: %s, right: %s, bottom: %s<br>" % (
-                        left, top, right, bottom)
+                    log += "bounding box left: %s, top: %s, right: %s,\
+                            bottom: %s<br>" % (left, top, right, bottom)
+
                     left_pixel = int(scaled_width * left)
                     top_pixel = int(scaled_height * top)
                     right_pixel = int(scaled_width * right)
                     bottom_pixel = int(scaled_height * bottom)
 
-                    if right_pixel - left_pixel != thumb_width:  # happen when both are at .5
+                    # happen when both are at .5
+                    if right_pixel - left_pixel != thumb_width:
                         right_pixel += thumb_width - (right_pixel - left_pixel)
 
-                    if bottom_pixel - top_pixel != thumb_height:  # happen when both are at .5
+                    # happen when both are at .5
+                    if bottom_pixel - top_pixel != thumb_height:
                         bottom_pixel += thumb_height - \
                             (bottom_pixel - top_pixel)
 
-                    log += "crop pixel box: left %s, top: %s, right: %s, bottom: %s<br>" % (
-                        left_pixel, top_pixel, right_pixel, bottom_pixel)
+                    log += "crop pixel box: left %s, top: %s, right: %s,\
+                            bottom: %s<br>" % (left_pixel, top_pixel,
+                                               right_pixel, bottom_pixel)
 
                     thumb_img = thumb_img.crop(
                         [left_pixel, top_pixel, right_pixel, bottom_pixel])
