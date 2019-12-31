@@ -1,7 +1,7 @@
 import os
 import time
 from io import BytesIO
-
+from tabulate import tabulate
 from PIL import Image
 from tqdm import tqdm
 
@@ -37,8 +37,9 @@ class ImageInfo(SitePreparsing):
         image_info = {}
         progress_bar = tqdm(total=num_images, unit=' img', leave=False,
                             desc="Generating images stats")
+        log_table = []
         for image_full_path in images:
-            log += "<br><br><h2>%s</h2>" % (image_full_path)
+            row = [image_full_path]
             # Creating needed directories
             img_path, img_filename = os.path.split(image_full_path)
 
@@ -61,13 +62,12 @@ class ImageInfo(SitePreparsing):
 
             io_img = BytesIO(raw_image)
             img = Image.open(io_img)
-            log += "Image loading time:<i>%s</i><br>" % (round(time.time() -
-                                                               start, 3))
+            row.append(round(time.time() - start, 3))
             img.close()
 
             # width and height
             width, height = img.size
-            log += "size: %sx%s<br>" % (width, height)
+            row.append("%sx%s" % (width, height))
 
             # hash
             # we use the hash of the content to make sure we regnerate if
@@ -92,7 +92,10 @@ class ImageInfo(SitePreparsing):
                 "hash": img_hash
             }
             progress_bar.update(1)
+            log_table.append(row)
 
+        log += tabulate(log_table, headers=['filename', 'load time', 'size'],
+                        tablefmt='html')
         progress_bar.close()
 
         # reporting data
