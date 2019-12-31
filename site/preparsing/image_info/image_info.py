@@ -49,6 +49,7 @@ class ImageInfo(SitePreparsing):
             # directories
             web_path = str(image_full_path).replace(str(site_output_dir), "/")
             web_path = web_path.replace('\\', '/').replace('//', '/')
+            web_dir = web_path.replace(img_filename, '')
 
             # loading
             start = time.time()
@@ -81,7 +82,8 @@ class ImageInfo(SitePreparsing):
 
                 "full_path": image_full_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
                 "path": img_path,               # noqa path on disk without filename: /user/elie/site/img/
-                "web_path": web_path,           # noqa path on the site: /static/img/photo.jpg
+                "web_path": web_path,           # noqa image url: /static/img/photo.jpg
+                "web_dir": web_dir,             # noqa path of the site: /static/img/
 
                 "pil_extension": pil_extension_codename,  # noqa image type in PIl: JPEG
                 "mime_type": web_extension,               # noqa mime-type: image/jpeg
