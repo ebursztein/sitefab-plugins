@@ -1,11 +1,9 @@
-import os
 from PIL import Image
 from tqdm import tqdm
 import time
 from diskcache import Cache as dc
 from io import BytesIO
-from pathlib import Path
-
+from sitefab.image import read_image_bytes, save_image, convert_image
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
 
@@ -17,16 +15,8 @@ class Thumbnails(SitePreparsing):
         log = ""
         errors = False
         plugin_name = "thumbnails"
-        input_dir = site.config.root_dir / config.input_dir
-        output_dir = site.config.root_dir / config.output_dir
         thumbnail_sizes = config.thumbnail_sizes
         cache_file = site.config.root_dir / site.config.dir.cache / plugin_name
-
-        # creating output directory
-        if not output_dir:
-            return (SiteFab.ERROR, plugin_name, "no output_dir specified")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
 
         # opening cache
         start = time.time()
@@ -50,19 +40,7 @@ class Thumbnails(SitePreparsing):
                             desc="Generating thumbnails", leave=False)
         for img_info in images:
             thumb = {}
-            log += "<br><br><h2>%s</h2>" % (img_info['full_path'])
-
-            img_output_path = str(img_info['path'])
-            img_output_path = img_output_path.replace(str(input_dir),
-                                                      str(output_dir))
-            img_output_path = Path(img_output_path)
-
-            log += "img_output_path: %s<br>" % img_output_path
-            log += "output_dir: %s<br>" % output_dir
-            log += "input_dir: %s<br>" % input_dir
-
-            if not img_output_path.exists():
-                img_output_path.mkdir(parents=True)
+            log += "<br><br><h2>%s</h2>" % (img_info['disk_path'])
 
             # cache fetch
             start = time.time()
@@ -74,7 +52,7 @@ class Thumbnails(SitePreparsing):
                 raw_image = cached_version['raw_image']
             else:
                 start = time.time()
-                raw_image = open(img_info['full_path'], 'rb').read()
+                raw_image = read_image_bytes(img_info['disk_path'])
                 log += "Image loading time:<i>%s</i><br>" % (round(time.time()
                                                                    - start, 5))
                 cached_version = {}
@@ -84,18 +62,14 @@ class Thumbnails(SitePreparsing):
             for thumb_width, thumb_height in thumbnail_sizes:
                 thumb_key = "%sx%s" % (thumb_width, thumb_height)
                 log += "<h3>%s</h3>" % (thumb_key)
-                output_filename = "%s-thumb-%s%s" % (img_info['name'],
+                output_filename = "%s-thumb-%s%s" % (img_info['stem'],
                                                      thumb_key,
                                                      img_info['extension'])
 
-                output_full_path = Path(img_output_path) / output_filename
-                output_web_path = "%s%s" % (img_info['web_dir'],
-                                            output_filename)
+                output_disk_path = img_info['disk_dir'] / output_filename
+                output_web_path = img_info['web_dir'] + output_filename
 
                 thumb[thumb_key] = output_web_path
-                log += "output_filename: %s<br>" % output_filename
-                log += "output_full_path: %s<br>" % output_full_path
-                log += "output_web_path: %s<br>" % output_web_path
 
                 # generating image
                 start = time.time()
@@ -224,24 +198,14 @@ class Thumbnails(SitePreparsing):
                     log += "thumbnail size: %sx%s<br>" % (
                         thumb_img.width, thumb_img.height)
 
-                    if thumb_img.mode == "P":
-                        thumb_img = thumb_img.convert('RGBA')
-                    thumb_img = thumb_img.convert('RGB')
-
-                    thumb_stringio = BytesIO()
-                    # FIXME support webp and tune parameters
-                    thumb_img.save(thumb_stringio, 'JPEG',
-                                   optimize=True, quality=90)
+                    thumb_io = convert_image(thumb_img, 'JPEG')
                     cached_version[thumb_key] = thumb_stringio
 
                     log += "thumbnail generation:%ss<br>" % (
                         round(time.time() - start, 5))
 
-                # writing to disk
-                start = time.time()
-                f = open(output_full_path, "wb+")
-                f.write(thumb_stringio.getvalue())
-                f.close()
+                    # writing to disk
+                    save_image(thumb_io, output_disk_path)
                 progress_bar.update(1)
 
             # cache storing

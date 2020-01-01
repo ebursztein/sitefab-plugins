@@ -1,33 +1,31 @@
-import os
-import json
+import pprint
+import random
+import time
+from io import BytesIO
+from itertools import repeat
+from multiprocessing import Pool
+from tabulate import tabulate
+
+from diskcache import Cache as dc
 from PIL import Image
 from tqdm import tqdm
-import random
-import pprint
-import time
-from multiprocessing import Pool as ThreadPool
-from itertools import repeat
-from diskcache import Cache as dc
-from io import StringIO
 
+from sitefab.image import read_image_bytes, normalize_image_extension
+from sitefab.image import convert_image, save_image
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
-from sitefab import files
-from sitefab import utils
 
 
-def generate_thumbnails(images, params):
-    "generate thumbnails for a given image"
-    total_time = time.time()
+def generate_thumbnails(bundle):
+    "generate thumbnails for a set of images"
+    images, params = bundle
     num_errors = 0
-
+    log = ''
     # minimal width that make sense to cache.
     MIN_CACHED_SIZE = params['min_image_width']
 
-    JPEG_QUALITY = 85
-    WEBP_QUALITY = 85
-
     start = time.time()
+    # According to the doc, cache need to be open in each thread
     cache = dc(params['cache_file'])
     cache_timing = {
         'opening': time.time() - start,
@@ -36,83 +34,57 @@ def generate_thumbnails(images, params):
     }
 
     results = []  # returned info
-    for image_full_path in images:
+    log_table = []
+    for image_info in images:
+        start_process_ts = time.time()
+        log_row = [image_info['disk_path']]
         resize_list = {}
-        log = "<br><br><h2>%s</h2>" % (image_full_path)
-
-        # File info extraction
-        img_path, img_filename = os.path.split(image_full_path)
-        # preserve the directory structure under the input dir
-        img_name, img_extension = os.path.splitext(img_filename)
-        sub_path = img_path.replace(params['input_dir'], "")
-        img_output_path = os.path.join(params['output_dir'], sub_path)
-        web_path = image_full_path.replace('\\', '/' ).replace(params['site_output_dir'], "/") #replace the root for output by / as it is what the webserver sees.
-        log += "MIN_CACHED_SIZE:%s<br>" % MIN_CACHED_SIZE
-        log += "img_path:%s<br>img_filename:%s<br>img_name:%s<br>img_extention:%s<br>img_output_path:%s<br>" % (img_path, img_filename, img_name, img_extension, img_output_path)
 
         # extensions
-        requested_extensions = []
+        requested_extensions = set()
         for f in params['requested_format_list']:
-            requested_extensions.append(f)
-        requested_extensions.append(img_extension)
+            requested_extensions.add(f)
+        requested_extensions.add(image_info['extension'])
 
         # loading image in memory
         start = time.time()
-        f = open(image_full_path, 'rb')
-        raw_image = f.read()
-        f.close()
-        img = Image.open(StringIO(raw_image))
-        log += "Opening time:<i>%s</i><br>" % (round(time.time() - start, 3))
+        width = image_info['width']
+        height = image_info['height']
+        raw_image = read_image_bytes(image_info['disk_path'])
+        img = Image.open(BytesIO(raw_image))
 
-        # hashing
-        start = time.time()
-        img_hash = utils.hexdigest(raw_image) # we use the hash of the content to make sure we regnerate if the image is different
-        log += "Hashing time:<i>%s</i><br>" % (round(time.time() - start, 3))
-
-        # width and height
-        width, height = img.size
-        log += "hash: %s<br>" % (img_hash)
-        log += "size: %sx%s<br>" % (width, height)
-        log += "</br>"
-
-
-        # cache loading
-
+        # loading cache
         if width >= MIN_CACHED_SIZE:
             start = time.time()
-            cached_value = cache.get(img_hash)
+            cached_value = cache.get(image_info['hash'])
             cache_timing['fetching'] += time.time() - start
-            if not cached_value: # cache miss!
-                log += "Cache status: MISS<br>"
+
+            # cache miss!
+            if not cached_value:
+                log_row.append('MISS')
                 cached_value = {}
             else:
-                log += "Cache status: HIT<br>"
+                log_row.append('HIT')
         else:
             cached_value = {}
-            log += "Cache status: Image too small, not using cache<br>"
-
-
+            log_row.append('SKIP')
 
         # add default images
-        s = "%s %sw" % (web_path, width)
-        pil_extension_codename, web_extension = utils.get_img_extension_alternative_naming(img_extension)
-        resize_list[web_extension] = []
-        resize_list[web_extension].append(s)
+        s = "%s %sw" % (image_info['web_path'], image_info['width'])
+        resize_list[image_info['mime_type']] = [s]
 
-        log += "<table><tr><th>Status</th><th>size</th><th>extension</th><th>gen time</th><th>write time</th><th>msg</th></tr>"
         for requested_width in params['requested_width_list']:
             if requested_width > width:
-                log += '<tr><td class="error">Skipped</td><td>%spx</td><td>all</td><td>N/A</td><td>N/A</td><td>Image too small (%spx) to generate %spx thumbnail</td></tr>' % (requested_width, width, requested_width)
                 continue
 
             ratio = float(requested_width) / width
             requested_height = int(height * ratio)  # preserve the ratio
 
             for extension in requested_extensions:
-                pil_extension_codename, web_extension = utils.get_img_extension_alternative_naming(extension)
+                pil_extension_codename, web_extension = normalize_image_extension(extension) # noqa
+
                 if not pil_extension_codename:
-                    # unknown extension marking the image as errors and skipping
-                    log += '<tr><td class="error">ERROR</td><td>%spx</td><td>%s</td><td>N/A</td><td>N/A</td><td>Unkown extension: %s</td></tr>' % (requested_width, extension, extension)
+                    # unknown extension marking the image as error and skipping
                     num_errors += 1
                     continue
 
@@ -120,84 +92,61 @@ def generate_thumbnails(images, params):
                     resize_list[web_extension] = []
 
                 # filename for the resized image
-                output_filename = "%s.%s%s" % (img_name, requested_width, extension)
-                output_full_path = os.path.join(img_output_path, output_filename)
-                output_web_path = output_full_path.replace("\\", "/").replace(params['site_output_dir'], "/")
-                cache_secondary_key = "%s-%s" % (pil_extension_codename, requested_width)
-                if cache_secondary_key in cached_value:
-                    start = time.time()
-                    stringio_file = cached_value[cache_secondary_key]
-                    resize_time = time.time() - start
-                    log += '<tr><td class="cached">cached</td>'
-                #log += "[Cached] %spx thumbnail - generation time: %s" % (requested_width, round(resize_time, 2))
-                else:
-                    # do the real work
-                    # print("cache key:%s --  available keys:%s" % (cache_secondary_key, cached_value.keys()))
-                    start = time.time()
+                output_filename = "%s.%s%s" % (image_info['stem'],
+                                               requested_width,
+                                               extension)
 
-                    stringio_file = StringIO()
+                output_disk_path = image_info['disk_dir'] / output_filename
+                output_web_path = image_info['web_dir'] + output_filename
+
+                # cache lookup
+                cache_secondary_key = "%s-%s" % (pil_extension_codename,
+                                                 requested_width)
+                if cache_secondary_key in cached_value:
+                    img_io = cached_value[cache_secondary_key]
+                else:
+                    # generate resized image as it is not in the cache.
                     resized_img = img.resize((requested_width,
                                               requested_height), Image.LANCZOS)
-                    # print("image:%s, image mode:%s resized image mode:%s" % (image_full_path, img.mode, resized_img.mode))
-                    if pil_extension_codename == 'PNG':
-                        resized_img.save(stringio_file, pil_extension_codename,
-                                         optimize=True, compress_level=9)
-                    elif pil_extension_codename == 'WEBP':
-                        if resized_img.mode == "P":
-                            resized_img = img.convert('RGBA')
-                        if resized_img.mode == "L":
-                            resized_img = img.convert('RGB')
-                        resized_img.save(stringio_file, pil_extension_codename,
-                                         optimize=True, compress_level=9,
-                                         quality=WEBP_QUALITY)
-                    elif pil_extension_codename == "JPEG":
-                        if resized_img.mode != "RGB":
-                            resized_img = resized_img.convert('RGB')
-                        resized_img.save(stringio_file, pil_extension_codename,
-                                         optimize=True, quality=JPEG_QUALITY)
-                    elif pil_extension_codename == "GIF":
-                        resized_img.save(stringio_file, pil_extension_codename,
-                                         optimize=True)
-                    else:
-                        print("Unknown: %s" % image_full_path)
 
-                    resize_time = time.time() - start
-                    log += '<tr><td class="generated">generated</td>'
-                    # log += "[GENERATED] %spx thumbnail - generation time: %s" % (requested_width, round(resize_time, 2))
-                    cached_value[cache_secondary_key] = stringio_file
+                    img_io = convert_image(resized_img, pil_extension_codename)
+
+                    # store in the cache
+                    cached_value[cache_secondary_key] = img_io
 
                 # writing to disk
-                start = time.time()
-                f = open(output_full_path, "wb+")
-                f.write(stringio_file.getvalue())
-                f.close()
-                write_time = time.time() - start
-                log += '<td>%spx</td><td>%s</td><td>%ss</td><td>%ss</td><td></td></tr>' % (requested_width, extension, round(resize_time, 3), round(write_time, 4))
+                save_image(img_io, output_disk_path)
 
+                # add to resize list
                 s = "%s %sw" % (output_web_path, requested_width)
                 resize_list[web_extension].append(s)
+                log_table.append(log_row)
 
-        log += "</table>"
-
-        # log += "Cache: opening time: %s<br>" % (round(cache_open_time, 3))
-
-        if width > MIN_CACHED_SIZE:  # is there anyhthing to cache?
+        # caching results - we write each time to avoid the cache pruning
+        if width > MIN_CACHED_SIZE:
             start = time.time()
-            cache.set(img_hash, cached_value)
-            # print("cache_key:%s - width:%s - writing keys:%s" % (img_hash, width, sorted(cached_value)))
+            cache.set(image_info['hash'], cached_value)
             cache_timing["writing"] += time.time() - start
 
         if 'opening' in cache_timing:
             log += "<h3>Cache stats</h3>"
-            log += '<table><tr><th>Action</th><th>Timing</th></tr><tr><td>Open</td><td>%s</td></tr><tr><td>Fetch</td><td>%s</td></tr><tr><td>Write</td><td>%s</td></tr></table>' % (cache_timing['opening'], cache_timing['fetching'], cache_timing['writing'])
+            log += tabulate([
+                              ['opening', cache_timing['opening']],
+                              ['fetching', cache_timing['fetching']],
+                              ['writing', cache_timing['writing']]
+                            ], tablefmt='html')
 
-        results.append([web_path, resize_list, width, log, num_errors, img_hash])
+        results.append([image_info['web_path'], resize_list, width,
+                        log, num_errors, image_info['hash']])
 
-    log += "Total time:%s<br>" % (round(time.time() - total_time, 3))
+        log_row.append(round(time.time() - start_process_ts, 2))
+        log_table.append(log_row)
+
+    log += tabulate(log_table, headers=['file', 'process_time'],
+                    tablefmt='html')
     if cache:
         cache.close()
     return results
-    # (output_web_path, requested_width)
 
 
 class ResponsiveImages(SitePreparsing):
@@ -209,27 +158,8 @@ class ResponsiveImages(SitePreparsing):
         log = ""
         errors = False
         plugin_name = "responsive_images"
-        input_dir = config.input_dir
-        output_dir = config.output_dir
         multithreading = config.multithreading
-        cache_file = os.path.join(site.config.dir.cache, plugin_name)
-
-        # creating output directory
-        if not output_dir:
-            return (SiteFab.ERROR, plugin_name, "no output_dir specified")
-
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
-
-        # reading images list
-        if not input_dir:
-            return (SiteFab.ERROR, plugin_name, "no input_dir specified")
-
-
-        images = files.get_files_list(input_dir, ["*.jpg","*.jpeg", "*.png", "*.gif"])
-
-        if len(images) == 0:
-            return (SiteFab.ERROR, plugin_name, "no images found")
+        cache_file = site.config.root_dir / site.config.dir.cache / plugin_name
 
         if config.additional_formats:
             requested_format_list = config.additional_formats
@@ -237,42 +167,33 @@ class ResponsiveImages(SitePreparsing):
             requested_format_list = []
 
         params = {
-            "input_dir": input_dir,
-            "output_dir": output_dir,
             "site_output_dir": site.config.dir.output,
             "requested_width_list": config.thumbnail_size,
             "requested_format_list": requested_format_list,
-            "cache_file": cache_file,  # According to the doc, cache need to be open in different thread
+            "cache_file": cache_file,
             "min_image_width": config.cache_min_image_width
         }
 
-        # creating needed directories
-        for image_full_path in images:
-            img_path, img_filename = os.path.split(image_full_path)
-            sub_path = img_path.replace(params['input_dir'], "") # preserve the directory structure under the input dir
-            img_output_path = os.path.join(params['output_dir'], sub_path)
-            if not os.path.exists(img_output_path):
-                os.makedirs(img_output_path)
+        resize_images = {}  # store the results
+        images = list(site.plugin_data['image_info'].values())
+        progress_bar = tqdm(total=len(images), unit=' images',
+                            desc="Generating responsive_images", leave=False)
 
+        # ensuring that the load will be uniformly split among the threads
+        random.shuffle(images)
 
-        resize_images = {} # store the results
-        num_images = len(images)
-        progress_bar = tqdm(total=num_images, unit=' images', desc="Generating responsive_images", leave=False)
-
-        # batching images to reduce cache operation cost.
-        random.shuffle(images) # ensuring that the load will be uniformly split among the threads
-
-        batch_size =  20
-        #batch_size = num_images / (site.config.threads)
-        batches =  [images[x: x + batch_size] for x in xrange(0, len(images), batch_size)]
+        batch_size = 20
+        batches = [images[x: x + batch_size] for x in range(0, len(images),
+                                                            batch_size)]
 
         bundles = zip(batches, repeat(params))
         results = []
 
         # allows non-multithread for windows.
         if multithreading:
-            log += "Using multithreading: %s threads<br>" % (site.config.threads)
-            tpool = ThreadPool(processes=site.config.threads)
+            log += "Using multithreading: %s threads<br>" % (
+                site.config.threads)
+            tpool = Pool()
             for data in tpool.imap_unordered(generate_thumbnails, bundles):
                 results.extend(data)
                 progress_bar.update(batch_size)
@@ -284,7 +205,8 @@ class ResponsiveImages(SitePreparsing):
                 progress_bar.update(batch_size)
 
         for result in results:
-            web_path = result[0].replace("\\", "/") #be extra sure that windows path don't messup the thing
+            # be extra sure that windows path don't messup the thing
+            web_path = result[0]
             resize_list = result[1]
             width = result[2]
             log += result[3]
@@ -293,7 +215,7 @@ class ResponsiveImages(SitePreparsing):
             if num_errors:
                 errors = True
 
-            #store all the resized images info
+            # store all the resized images info
             srcsets = {}
             for webformat, srcset in resize_list.items():
                 if webformat == "image/webp":
@@ -306,15 +228,16 @@ class ResponsiveImages(SitePreparsing):
                 }
 
             resize_images[web_path] = {"srcsets": srcsets,
-                                    "media": '(max_width: %spx)' % width,
-                                    "sizes": '(max_width: %spx)' % width,
-                                    "hash": img_hash,
+                                       "media": '(max_width: %spx)' % width,
+                                       "sizes": '(max_width: %spx)' % width,
+                                       "hash": img_hash,
 
-            }
+                                       }
 
         log += pprint.pformat(resize_images)
         # configuring the parser to make use of the resize images
-        site.plugin_data['responsive_images'] = resize_images # expose the list of resized images
+        # expose the list of resized images
+        site.plugin_data['responsive_images'] = resize_images
         if errors:
             return (SiteFab.ERROR, plugin_name, log)
         else:
