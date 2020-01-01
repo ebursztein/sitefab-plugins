@@ -6,6 +6,7 @@ from io import BytesIO
 from tabulate import tabulate
 
 from sitefab.image import save_image, convert_image, read_image_bytes
+from sitefab.image import image_hash
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
 
@@ -98,11 +99,14 @@ class ImageResizer(SitePreparsing):
             save_image(resized_img_io, img_info['disk_path'])
             progress_bar.update(1)
 
-            # update image info to reflect new size
+            # update image info to reflect new image info
+            # it is mandatory to update the hash as other plugins rely on
+            # it to detect change
             width, height = resized_img.size
             site.plugin_data['image_info'][img_info['web_path']]['width'] = width  # noqa
             site.plugin_data['image_info'][img_info['web_path']]['height'] = height # noqa
             site.plugin_data['image_info'][img_info['web_path']]['file_size'] = resized_img_io.getbuffer().nbytes  # noqa
+            site.plugin_data['image_info'][img_info['web_path']]['hash'] = image_hash(resized_img_io.getbuffer()) # noqa
 
             # cache storing
             start_set = time.time()
