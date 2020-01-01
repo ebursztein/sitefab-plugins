@@ -75,7 +75,7 @@ class Thumbnails(SitePreparsing):
                 start = time.time()
                 if thumb_key in cached_version:
                     log += "Cache status: HIT<br>"
-                    thumb_stringio = cached_version[thumb_key]
+                    thumb_io = cached_version[thumb_key]
                 else:
                     log += "Cache status: MISS<br>"
 
@@ -199,13 +199,13 @@ class Thumbnails(SitePreparsing):
                         thumb_img.width, thumb_img.height)
 
                     thumb_io = convert_image(thumb_img, 'JPEG')
-                    cached_version[thumb_key] = thumb_stringio
+                    cached_version[thumb_key] = thumb_io
 
                     log += "thumbnail generation:%ss<br>" % (
                         round(time.time() - start, 5))
 
-                    # writing to disk
-                    save_image(thumb_io, output_disk_path)
+                # writing to disk
+                save_image(thumb_io, output_disk_path)
                 progress_bar.update(1)
 
             # cache storing
