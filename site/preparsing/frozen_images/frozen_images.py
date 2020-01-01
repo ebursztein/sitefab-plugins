@@ -68,7 +68,7 @@ class FrozenImages(SitePreparsing):
                 row.append('MISS')
                 # loading
                 start = time.time()
-                raw_image = read_image_bytes(img_info['full_path'])
+                raw_image = read_image_bytes(img_info['disk_path'])
 
                 img = Image.open(BytesIO(raw_image))
 
@@ -77,6 +77,10 @@ class FrozenImages(SitePreparsing):
                 ratio = float(frozen_width) / width
                 frozen_height = int(height * ratio)  # preserve the ratio
                 resized_img = img.resize((frozen_width, frozen_height))
+
+                # convert to make blur working (avoid saving thus)
+                resized_img = convert_image(resized_img, 'JPEG',
+                                            return_as_bytesio=False)
 
                 # blur
                 resized_img = resized_img.filter(
