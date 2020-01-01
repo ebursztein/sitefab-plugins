@@ -82,6 +82,7 @@ class ImageInfo(SitePreparsing):
 
                 "disk_path": image_full_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
                 "disk_dir": disk_dir,               # noqa path on disk without filename: /user/elie/site/img/
+
                 "web_path": web_path,           # noqa image url: /static/img/photo.jpg
                 "web_dir": web_dir,             # noqa path of the site: /static/img/
 

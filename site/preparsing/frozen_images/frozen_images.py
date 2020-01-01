@@ -1,11 +1,12 @@
-import os
 from PIL import Image, ImageFilter
 from tqdm import tqdm
 import time
 import base64
 from diskcache import Cache as dc
 from io import BytesIO
+from tabulate import tabulate
 
+from sitefab.image import read_image_bytes, convert_image, save_image
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
 
@@ -20,17 +21,8 @@ class FrozenImages(SitePreparsing):
         errors = False
         plugin_name = "frozen_images"
         frozen_width = 42
-        input_dir = config.input_dir
-        output_dir = config.output_dir
         cache_file = site.config.root_dir / site.config.dir.cache / plugin_name
-        site_output_dir = site.config.dir.output
         blur_value = 2
-
-        # creating output directory
-        if not output_dir:
-            return (SiteFab.ERROR, plugin_name, "no output_dir specified")
-        if not os.path.exists(output_dir):
-            os.makedirs(output_dir)
 
         # opening cache
         start = time.time()
@@ -45,28 +37,22 @@ class FrozenImages(SitePreparsing):
         if 'image_info' not in site.plugin_data:
             log += 'image_info not found in plugin_data. No images?'
             return (SiteFab.ERROR, plugin_name, log)
-        images = site.plugin_data['image_info'].values()
 
         # processing images
+        images = site.plugin_data['image_info'].values()
         frozen_images = {}
         progress_bar = tqdm(total=len(images), unit=' frozen thumb',
                             desc="Generating frozen images", leave=False)
+        log_table = []
         for img_info in images:
-            log += "<br><br><h2>%s</h2>" % (img_info['full_path'])
-            # Creating needed directories
-            # preserve the directory structure under the input dir
-            sub_path = img_info['path'].replace(input_dir, "")
-            img_output_path = os.path.join(output_dir, sub_path)
-            if not os.path.exists(img_output_path):
-                os.makedirs(img_output_path)
+            start_process_time_ts = time.time()
+            row = [img_info['disk_path']]
 
-            img_output_path = os.path.join(output_dir, sub_path)
-            output_filename = "%s.frozen%s" % (img_info['name'],
+            output_filename = "%s.frozen%s" % (img_info['stem'],
                                                img_info['extension'])
 
-            output_full_path = os.path.join(img_output_path, output_filename)
-            output_web_path = output_full_path.replace("\\", "/")
-            output_web_path = output_web_path.replace(site_output_dir, "/")
+            output_disk_path = img_info['disk_dir'] / output_filename
+            output_web_path = img_info['web_dir'] + output_filename
 
             # cache fetch
             start = time.time()
@@ -76,65 +62,57 @@ class FrozenImages(SitePreparsing):
             # generating image
             start = time.time()
             if cached_value:
-                log += "Cache status: HIT<br>"
-                stringio_file = cached_value
+                row.append('HIT')
+                img_io = cached_value
             else:
-                log += "Cache status: MISS<br>"
+                row.append('MISS')
                 # loading
                 start = time.time()
-                f = open(img_info['full_path'], 'rb')
-                raw_image = f.read()
-                f.close()
-                log += "Image loading time:<i>%s</i><br>" % (
-                    round(time.time() - start, 3))
+                raw_image = read_image_bytes(img_info['full_path'])
+
                 img = Image.open(BytesIO(raw_image))
 
-                # width and height
+                # resize
                 width, height = img.size
                 ratio = float(frozen_width) / width
                 frozen_height = int(height * ratio)  # preserve the ratio
-                log += "size: %sx%s<br>" % (width, height)
-                log += "frozen width:%sx%s<br>"
                 resized_img = img.resize((frozen_width, frozen_height))
 
-                # PIL complain if we don't force the conversion first
-                if resized_img.mode == "P":
-                    resized_img = img.convert('RGBA')
-                resized_img = resized_img.convert('RGB')
-
+                # blur
                 resized_img = resized_img.filter(
                     ImageFilter.GaussianBlur(blur_value))
-                stringio_file = BytesIO()
-                resized_img.save(stringio_file, 'JPEG', optimize=True)
+
+                # convert
+                img_io = convert_image(resized_img, 'JPEG')
 
             # cache storing
             start_set = time.time()
-            cache.set(img_info['hash'], stringio_file)
+            cache.set(img_info['hash'], img_io)
             cache_timing["writing"] += time.time() - start_set
 
             "IMG manipulation:%ss<br>" % (time.time() - start)
 
             # writing to disk
             start = time.time()
-            f = open(output_full_path, "wb+")
-            f.write(stringio_file.getvalue())
-            f.close()
+            save_image(img_io, output_disk_path)
 
-            s = base64.b64encode(stringio_file.getvalue())
+            s = base64.b64encode(img_io.getvalue())
             img_base64 = "data:image/jpg;base64,%s" % s
-
-            "Write to disk:%ss<br>" % (time.time() - start)
 
             frozen_images[img_info['web_path']] = {
                 "url": output_web_path,
                 "base64": img_base64,
             }
-            log += 'Img result (from base64): <img src="%s">' % img_base64
+
+            row.append('<img src="%s">' % img_base64)
+            row.append(start_process_time_ts)
             progress_bar.update(1)
+            log_table.append(row)
 
         # expose the list of resized images
         site.plugin_data['frozen_images'] = frozen_images
 
+        log += tabulate(log_table, tablefmt='html')
         progress_bar.close()
         cache.close()
 
