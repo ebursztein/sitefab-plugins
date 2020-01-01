@@ -63,7 +63,7 @@ class ImageResizer(SitePreparsing):
                 row.append(0)
             else:
                 start = time.time()
-                raw_image = read_image_bytes(img_info['full_path'])
+                raw_image = read_image_bytes(img_info['disk_path'])
                 row.append((round(time.time() - start, 5)))
 
                 cached_version = {}
