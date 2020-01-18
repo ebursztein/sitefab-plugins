@@ -9,7 +9,7 @@ class SortCollection(CollectionProcessor):
 
     def process(self, collection, site, config):
 
-        if config.criteria == "udpate_date":
+        if config.sort_by == "udpate_date":
             k = lambda x: x.meta.update_date_ts
         else:
             k = lambda x: x.meta.creation_date_ts
