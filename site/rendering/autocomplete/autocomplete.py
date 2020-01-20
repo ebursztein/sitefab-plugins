@@ -71,7 +71,7 @@ class Autocomplete(SiteRendering):
 
         # log results
         log_info += tabulate(output,
-                             headers=['term', 'post frequency', score],
+                             headers=['term', 'post frequency', 'score'],
                              tablefmt='html')
 
         # replacing placeholder with computation result
