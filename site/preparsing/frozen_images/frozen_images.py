@@ -104,7 +104,7 @@ class FrozenImages(SitePreparsing):
             # this is required due to python3 using b'
             s = str(s).replace("b'", '').replace("'", '')
             img_base64 = "data:image/jpg;base64,%s" % (s)
-            print(img_base64[:64])
+            # print(img_base64[:64])
             frozen_images[img_info['web_path']] = {
                 "url": output_web_path,
                 "base64": img_base64,
