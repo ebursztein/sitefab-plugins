@@ -158,7 +158,6 @@ class ResponsiveImages(SitePreparsing):
         log = ""
         errors = False
         plugin_name = "responsive_images"
-        multithreading = config.multithreading
         cache_file = site.config.root_dir / site.config.dir.cache / plugin_name
 
         if config.additional_formats:
@@ -189,8 +188,8 @@ class ResponsiveImages(SitePreparsing):
         bundles = zip(batches, repeat(params))
         results = []
 
-        # allows non-multithread for windows.
-        if multithreading:
+        # allows non-multithread by setting threads to 1.
+        if site.config.threads > 1:
             log += "Using multithreading: %s threads<br>" % (
                 site.config.threads)
             tpool = Pool()
