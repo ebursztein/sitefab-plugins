@@ -39,10 +39,10 @@ class Bibtex(PostProcessor):
                 authors_okay.append(author_okay)
 
                 if not first_author_lastname:
-                    first_author_lastname = author_details[1].strip().replace(" ", "").lower()
+                    first_author_lastname = author_details[1].strip().replace(" ", "").replace("'", "").lower()
 
             year = date.fromtimestamp(post.meta.conference_date_ts).year
-            stub = post.meta.title[:10].replace(" ", "").lower()
+            stub = post.meta.title[:10].replace(" ", "").replace("'", "").lower()
 
             id_publication = "%s%s%s" % (first_author_lastname, year, stub)
             authors = (" and ").join(authors_okay)
