@@ -42,7 +42,8 @@ class Bibtex(PostProcessor):
                     first_author_lastname = author_details[1].strip().replace(" ", "").replace("'", "").lower()
 
             year = date.fromtimestamp(post.meta.conference_date_ts).year
-            stub = post.meta.title[:10].replace(" ", "").replace("'", "").lower()
+            urls = post.meta.permanent_url.split("/")
+            stub = urls[2][:10].replace("-", "")
 
             id_publication = "%s%s%s" % (first_author_lastname, year, stub)
             authors = (" and ").join(authors_okay)
