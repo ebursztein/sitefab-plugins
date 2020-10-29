@@ -81,7 +81,7 @@ def generate_thumbnails(bundle):
             requested_height = int(height * ratio)  # preserve the ratio
 
             for extension in requested_extensions:
-                pil_extension_codename, web_extension = normalize_image_extension(extension) # noqa
+                pil_extension_codename, web_extension = normalize_image_extension(extension)  # noqa
 
                 if not pil_extension_codename:
                     # unknown extension marking the image as error and skipping
@@ -131,10 +131,10 @@ def generate_thumbnails(bundle):
         if 'opening' in cache_timing:
             log += "<h3>Cache stats</h3>"
             log += tabulate([
-                              ['opening', cache_timing['opening']],
-                              ['fetching', cache_timing['fetching']],
-                              ['writing', cache_timing['writing']]
-                            ], tablefmt='html')
+                ['opening', cache_timing['opening']],
+                ['fetching', cache_timing['fetching']],
+                ['writing', cache_timing['writing']]
+            ], tablefmt='html')
 
         results.append([image_info['web_path'], resize_list, width,
                         log, num_errors, image_info['hash']])
@@ -216,23 +216,34 @@ class ResponsiveImages(SitePreparsing):
 
             # store all the resized images info
             srcsets = {}
+            allsizes = {}
             for webformat, srcset in resize_list.items():
                 if webformat == "image/webp":
                     key = 'webp'
                 else:
                     key = 'original'
+
+                for img in srcset:
+                    img_data = img.split(" ")
+                    size = img_data[1][:-1]
+                    img_path = img_data[0]
+                    if size not in allsizes:
+                        allsizes[size] = {}
+                    if key not in allsizes[size]:
+                        allsizes[size][key] = {}
+                    allsizes[size][key] = img_path
+               
                 srcsets[key] = {
                     'srcset': ", ".join(srcset),
                     'format': webformat
                 }
 
             resize_images[web_path] = {"srcsets": srcsets,
-                                       "media": '(max_width: %spx)' % width,
-                                       "sizes": '(max_width: %spx)' % width,
+                                       "media": '(max-width: %spx)' % width,
+                                       "sizes": '(max-width: %spx)' % width,
                                        "hash": img_hash,
-
+                                       "allsizes": allsizes
                                        }
-
         log += pprint.pformat(resize_images)
         # configuring the parser to make use of the resize images
         # expose the list of resized images
