@@ -1,79 +1,3 @@
-//Search core code
-window.search_docs = SEARCH_DOC_PLUGIN_REPLACE;
-//Export needed functions/data to the global context
-window.search_init = search_init;
-window.search_attach_to = search_attach_to;
-window.search = search;
-
-var search_index  = null
-function search_init(fields) {
-    /**
-    *  Init the index
-    *  @param {Array of strings} fields fields on which perform a search
-    */
-    search_index = elasticlunr(function () {
-        for (var i = 0; i < fields.length; i++) {
-          this.addField(fields[i])
-        }
-        this.setRef('id');
-    });
-    for (var idx in window.search_docs) {
-        search_index.addDoc(window.search_docs[idx]);
-    }
-    
-}
-
-
-function search_attach_to(search_box, callback) {
-  /**
-  *  Attach search to a DOM element
-  * @param {DomElement} search_box id of the searchbox to attach to
-  * @param {function} callback function to callback with the results and the query. proto:" callback(docs, query);
-  */
-
-  search_box.onkeyup = function (e) {
-      var query = search_box.value;
-      var results = search(query);
-          callback(results);
-  }
-}
-
-
-function search(query, bool_operator="AND", partial=true) {
-    /**
-    * Return an array of documents that match a search query ordered by relevance.
-    * @param  {string} query the query
-    * @param  {string} bool_operator how to combine the terms. AND or OR
-    * @param {boolean} partial do partial search
-    * @return {Array}
-    */
-
-    //FIXME: better weights
-    var results = search_index.search(query, {
-        bool: bool_operator,
-        expand: partial,
-        fields: {
-          title: {boost: 3},
-          authors: {boost: 3},
-          conference: {boost: 2},
-          terms: {boost: 1},
-        }
-    })
-
-    var docs = Array();
-
-    for (var i = 0; i < results.length; i++) {
-        var doc_idx = results[i].ref;
-        var doc = search_docs[doc_idx];
-        doc.score = results[i].score;
-        docs.push(doc);
-    }
-   
-    return docs;
-}
-
-
-
 /**
  * elasticlunr - http://weixsong.github.io
  * Lightweight full-text search engine in Javascript for browser search and offline search. - 0.9.5
@@ -145,7 +69,7 @@ function search(query, bool_operator="AND", partial=true) {
  * @return {elasticlunr.Index}
  *
  */
-var elasticlunr = function (config) {
+window.elasticlunr = function (config) {
   var idx = new elasticlunr.Index;
 
   idx.pipeline.add(
@@ -163,7 +87,7 @@ elasticlunr.version = "0.9.5";
 
 // only used this to make elasticlunr.js compatible with lunr-languages
 // this is a trick to define a global alias of elasticlunr
-lunr = elasticlunr;
+window.lunr = elasticlunr;
 
 /*!
  * elasticlunr.utils
@@ -2581,3 +2505,66 @@ lunr.SortedSet.prototype.toJSON = function () {
     return elasticlunr
   }))
 })();
+
+
+const search_docs = SEARCH_DOC_PLUGIN_REPLACE;
+
+
+let Search = function() {
+  this.search_docs = search_docs;
+  this.search_index = null;
+  this.fields = ['title', 'authors', 'conference', 'terms']
+};
+
+Search.prototype.searchInit = function (fields) {
+  /**
+   *  Init the index
+   *  @param {Array of strings} fields fields on which perform a search
+   */
+  let all_fields = this.fields;
+  this.search_index = elasticlunr(function () {
+    
+    for (var i = 0; i < all_fields.length; i++) {
+      this.addField(all_fields[i])
+    }
+    this.setRef('id');
+  });
+  for (var idx in this.search_docs) {
+    this.search_index.addDoc(this.search_docs[idx]);
+  }
+};
+
+Search.prototype.attachSearch = function (searchBox, callback) {
+  searchBox.onkeyup = function (e) {
+    var query = searchBox.value;
+    var results = search(query);
+    callback(results);
+  }
+};
+
+Search.prototype.search = function (query, bool_operator="AND", partial=true) {
+  //FIXME: better weights
+  let results = this.search_index.search(query, {
+    bool: bool_operator,
+    expand: partial,
+    fields: {
+      title: { boost: 3 },
+      authors: { boost: 3 },
+      conference: { boost: 2 },
+      terms: { boost: 1 },
+    }
+  })
+  let docs = Array();
+
+  for (var i = 0; i < results.length; i++) {
+    var doc_idx = results[i].ref;
+    var doc = search_docs[doc_idx];
+    doc.score = results[i].score;
+    docs.push(doc);
+  }
+  return docs;
+};
+
+
+//Export needed functions/data to the global context
+module.exports = Search;

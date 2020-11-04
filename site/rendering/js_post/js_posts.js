@@ -1,1 +1,3 @@
-window.posts = JS_POSTS_PLUGIN_REPLACE;
+const jsPosts = JS_POSTS_PLUGIN_REPLACE;
+
+export default jsPosts;
