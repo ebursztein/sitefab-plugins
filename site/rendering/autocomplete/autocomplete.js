@@ -77,6 +77,7 @@ var trie_data = AUTOCOMPLETE_PLUGIN_REPLACE;
 
 var Autocomplete = function() {
   this.oct = new Octopi();
+  this.load_data(trie_data);
 };
 
 Autocomplete.prototype = {
@@ -102,5 +103,7 @@ Autocomplete.prototype = {
 };
 
 // Export needed functions/data to the global context
-window.Autocomplete = Autocomplete;
-window.trie_data = trie_data;
+// window.Autocomplete = Autocomplete;
+// window.trie_data = trie_data;
+
+module.exports = Autocomplete
