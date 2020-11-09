@@ -33,6 +33,7 @@ class Search(SiteRendering):
 
             js_post = {
                 "id": post.id,
+                "template": post.meta.template, 
                 "title": post.nlp.clean_fields.title,
                 "authors": post.nlp.clean_fields.authors,
                 "conference": "%s %s" % (post.nlp.clean_fields.conference_short_name, # noqa
