@@ -2513,12 +2513,15 @@ let Search = function() {
   this.fields = ['title', 'authors', 'conference', 'terms']
 };
 
-Search.prototype.searchInit = function (fields, searchData) {
+Search.prototype.searchInit = function (searchData, fields) {
   /**
    *  Init the index
    *  @param {Array of strings} fields fields on which perform a search
    */
   let all_fields = this.fields;
+  if(fields !== null){
+    all_fields = fields;
+  }
   this.search_index = elasticlunr(function () {
     
     for (var i = 0; i < all_fields.length; i++) {
@@ -2529,6 +2532,7 @@ Search.prototype.searchInit = function (fields, searchData) {
   for (var idx in searchData) {
     this.search_index.addDoc(searchData[idx]);
   }
+  this.search_docs = searchData;
 };
 
 Search.prototype.attachSearch = function (searchBox, callback) {
@@ -2555,7 +2559,7 @@ Search.prototype.search = function (query, bool_operator="AND", partial=true) {
 
   for (var i = 0; i < results.length; i++) {
     var doc_idx = results[i].ref;
-    var doc = search_docs[doc_idx];
+    var doc = this.search_docs[doc_idx];
     doc.score = results[i].score;
     docs.push(doc);
   }
