@@ -11,7 +11,7 @@ class JSPosts(SiteRendering):
     # @profile
     def process(self, unused, site, config):
         plugin_name = "js_posts"
-        js_filename = "js_posts.js"
+        js_filename = "posts.json"
 
         # configuration
         output_path = config.output_path
@@ -27,8 +27,8 @@ class JSPosts(SiteRendering):
         plugin_dir = os.path.dirname(__file__)
         js_file = os.path.join(plugin_dir, js_filename)
         js = files.read_file(js_file)
-        if not js or len(js) < 10:
-            return (SiteFab.ERROR, plugin_name, "Base Javascript:%s not found or too small." % js_file)
+        if not js:
+            return (SiteFab.ERROR, plugin_name, "Base Javascript:%s not found." % js_file)
 
         js_posts = {}
         for post in site.posts:

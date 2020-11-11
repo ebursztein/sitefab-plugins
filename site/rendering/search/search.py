@@ -12,19 +12,22 @@ class Search(SiteRendering):
     def process(self, unused, site, config):
         plugin_name = "search"
         js_filename = "search.js"
-        output_path = config.output_path
+        json_filename = "search.json"
+        output_path_js = config.output_path_js
+        output_path_json = config.output_path_json
         num_terms = config.num_terms_per_post
 
-        log_info = "base javascript: %s<br>ouput:%s%s<br>" % (
-            js_filename, output_path, js_filename)
-
+        # log_info = "base javascript: %s<br>ouput:%s%s<br>" % (
+        #     js_filename, output_path, js_filename)
+        log_info = ""
         # Reading the base JS
         plugin_dir = os.path.dirname(__file__)
-        js_file = os.path.join(plugin_dir, js_filename)
-        js = files.read_file(js_file)
-        if not js or len(js) < 10:
-            err = "Base Javascript:%s not found or too small." % js_file
-            return (SiteFab.ERROR, plugin_name, err)
+        json_file = os.path.join(plugin_dir, json_filename)
+        jsondata = files.read_file(json_file)
+        jsdata = files.read_file(os.path.join(plugin_dir, js_filename))
+        # if not js or len(js) < 10:
+        #     err = "Base Javascript:%s not found or too small." % js_file
+        #     return (SiteFab.ERROR, plugin_name, err)
 
         js_posts = {}
         table_data = []
@@ -48,9 +51,11 @@ class Search(SiteRendering):
                              headers=['title', 'terms'])
 
         # output
-        js = str(js)
         output_string = json.dumps(js_posts)
-        js = js.replace("SEARCH_DOC_PLUGIN_REPLACE", output_string)
-        path = os.path.join(site.get_output_dir(), output_path)
-        files.write_file(path, js_filename, js)
+        jsondata = jsondata.replace("SEARCH_DOC_PLUGIN_REPLACE", output_string)
+        path_json = os.path.join(site.get_output_dir(), output_path_json)
+        files.write_file(path_json, json_filename, jsondata)
+
+        path_js = os.path.join(site.get_output_dir(), output_path_js)
+        files.write_file(path_js, js_filename, jsdata)
         return (SiteFab.OK, plugin_name, log_info)

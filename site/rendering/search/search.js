@@ -2507,16 +2507,13 @@ lunr.SortedSet.prototype.toJSON = function () {
 })();
 
 
-const search_docs = SEARCH_DOC_PLUGIN_REPLACE;
-
-
 let Search = function() {
-  this.search_docs = search_docs;
+  this.search_docs = null;
   this.search_index = null;
   this.fields = ['title', 'authors', 'conference', 'terms']
 };
 
-Search.prototype.searchInit = function (fields) {
+Search.prototype.searchInit = function (fields, searchData) {
   /**
    *  Init the index
    *  @param {Array of strings} fields fields on which perform a search
@@ -2529,8 +2526,8 @@ Search.prototype.searchInit = function (fields) {
     }
     this.setRef('id');
   });
-  for (var idx in this.search_docs) {
-    this.search_index.addDoc(this.search_docs[idx]);
+  for (var idx in searchData) {
+    this.search_index.addDoc(searchData[idx]);
   }
 };
 
