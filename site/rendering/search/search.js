@@ -8,8 +8,6 @@
  * @license
  */
 
-(function(){
-
 /*!
  * elasticlunr.js
  * Copyright (C) 2017 Oliver Nightingale
@@ -69,7 +67,7 @@
  * @return {elasticlunr.Index}
  *
  */
-window.elasticlunr = function (config) {
+let elasticlunr = function (config) {
   var idx = new elasticlunr.Index;
 
   idx.pipeline.add(
@@ -87,7 +85,7 @@ elasticlunr.version = "0.9.5";
 
 // only used this to make elasticlunr.js compatible with lunr-languages
 // this is a trick to define a global alias of elasticlunr
-window.lunr = elasticlunr;
+let lunr = elasticlunr;
 
 /*!
  * elasticlunr.utils
@@ -2504,7 +2502,6 @@ lunr.SortedSet.prototype.toJSON = function () {
      */
     return elasticlunr
   }))
-})();
 
 
 let Search = function() {
