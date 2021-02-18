@@ -40,7 +40,7 @@ def generate_thumbnails(bundle):
         start_process_ts = time.time()
         log_row = [image_info['disk_path']]
         resize_list = {}
-        if image_info['extension'] == 'PNG':
+        if image_info['extension'] in ['PNG', 'GIF']:
             webp_lossless = True
         else:
             webp_lossless = False
@@ -114,7 +114,9 @@ def generate_thumbnails(bundle):
                     resized_img = img.resize((requested_width,
                                               requested_height), Image.LANCZOS)
 
-                    img_io = convert_image(resized_img, pil_extension_codename, webp_lossless=webp_lossless)
+                    img_io = convert_image(resized_img,
+                                           pil_extension_codename,
+                                           webp_lossless=webp_lossless)
 
                     # store in the cache
                     cached_value[cache_secondary_key] = img_io
