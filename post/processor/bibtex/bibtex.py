@@ -42,10 +42,9 @@ class Bibtex(PostProcessor):
                     first_author_lastname = author_details[1].strip().replace(" ", "").replace("'", "").lower()
 
             year = date.fromtimestamp(post.meta.conference_date_ts).year
-            urls = post.meta.permanent_url.split("/")
-            stub = urls[2][:10].replace("-", "")
+            id_publication = "%s%s%s" % (first_author_lastname, year, post.meta.title[:5])
+            id_publication = id_publication.upper().replace("-", "")
 
-            id_publication = "%s%s%s" % (first_author_lastname, year, stub)
             authors = (" and ").join(authors_okay)
 
             bibtex_data = "@inproceedings{%s, " \
