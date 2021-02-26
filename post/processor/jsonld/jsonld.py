@@ -67,9 +67,8 @@ class Jsonld(PostProcessor):
                     "sameAs": ["https://www.facebook.com/elieblog",
                                "https://www.linkedin.com/in/bursztein/",
                                "http://twitter.com/elie",
-                               "https://www.youtube.com/eliebursztein",
-                               "http://instagram.com/eliebursztein",
-                               "https://plus.google.com/+eliebursztein"]
+                               "https://www.youtube.com/c/ebursztein",
+                               "http://instagram.com/eliebursztein"]
                 }
 
             # banner image for include_images types
