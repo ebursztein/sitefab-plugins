@@ -6,4 +6,4 @@ Dependencies =  copy_dir, image_info, image_resizer
 [Documentation]
 Description = Create images thumbnails.
 Filename = README.md
-Version = 1.1
+Version = 1.2

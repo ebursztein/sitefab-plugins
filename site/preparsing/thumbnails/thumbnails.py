@@ -3,7 +3,8 @@ from tqdm import tqdm
 import time
 from diskcache import Cache as dc
 from io import BytesIO
-from sitefab.image import read_image_bytes, save_image, convert_image
+from sitefab.image import image_hash, read_image_bytes, convert_image
+from sitefab.image import normalize_image_extension, save_image
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
 
@@ -35,6 +36,7 @@ class Thumbnails(SitePreparsing):
 
         # processing images
         thumbs = {}
+        thumbs_info = {}  # metadata added to image_info for further processing
         num_thumbs = len(images) * len(thumbnail_sizes)
         progress_bar = tqdm(total=num_thumbs, unit=' thumbnails',
                             desc="Generating thumbnails", leave=False)
@@ -198,14 +200,38 @@ class Thumbnails(SitePreparsing):
                     log += "thumbnail size: %sx%s<br>" % (
                         thumb_img.width, thumb_img.height)
 
-                    thumb_io = convert_image(thumb_img, 'JPEG')
+                    thumb_io = convert_image(thumb_img, img_info['pil_extension'])
                     cached_version[thumb_key] = thumb_io
 
                     log += "thumbnail generation:%ss<br>" % (
                         round(time.time() - start, 5))
 
-                # writing to disk
+                # write image
                 save_image(thumb_io, output_disk_path)
+
+                # write to image_info to allows to make thumbnails
+                # responsive
+                extension = output_disk_path.suffix
+                pil_ext, web_ext = normalize_image_extension(extension)
+
+                thumbs_info[output_web_path] = {
+                    "filename": output_disk_path.name,       # noqa image filename without path: photo.jpg
+                    "stem": output_disk_path.stem,               # noqa image name without path and extension: photo
+                    "extension": extension,     # noqa image extension: .jpg
+
+                    "disk_path": output_disk_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
+                    "disk_dir": output_disk_path.parents[0], # noqa path on disk without filename: /user/elie/site/img/
+
+                    "web_path": img_info['web_path'],           # noqa image url: /static/img/photo.jpg
+                    "web_dir": img_info['web_dir'],             # noqa path of the site: /static/img/
+
+                    "pil_extension": pil_ext,  # noqa image type in PIl: JPEG
+                    "mime_type": web_ext,  # noqa mime-type: image/jpeg
+                    "width": thumb_width,
+                    "height": thumb_height,
+                    "file_size": output_disk_path.stat().st_size,
+                    "hash": image_hash(thumb_io.getvalue())
+                }
                 progress_bar.update(1)
 
             # cache storing
@@ -218,6 +244,9 @@ class Thumbnails(SitePreparsing):
         # expose the list of resized images
         site.plugin_data['thumbnails'] = thumbs
         cache.close()
+
+        site.plugin_data['image_info'].update(thumbs_info)
+
         # FIXME: add counter output
 
         if errors:

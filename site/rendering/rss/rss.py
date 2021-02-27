@@ -67,12 +67,13 @@ class Rss(SiteRendering):
             post.meta.formatted_update = formatted_rss_update_date
 
             # size of image
-            post.meta.banner_size = site.plugin_data['image_info'][
-                post.meta.banner]['file_size']
-            post.meta.banner_mimetype = site.plugin_data['image_info'][
-                post.meta.banner]['mime_type']
-            post.meta.banner_fullurl = "%s%s" % (site.config.url,
-                                                 post.meta.banner)
+            if post.meta.banner in site.plugin_data['image_info']:
+                post.meta.banner_size = site.plugin_data['image_info'][
+                    post.meta.banner]['file_size']
+                post.meta.banner_mimetype = site.plugin_data['image_info'][
+                    post.meta.banner]['mime_type']
+                post.meta.banner_fullurl = "%s%s" % (site.config.url,
+                                                     post.meta.banner)
 
             post.meta.author = post.meta.authors[0].replace(",", "")
             rss_items.append(post)
