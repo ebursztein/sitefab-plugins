@@ -7,7 +7,6 @@ from sitefab.parser.parser import Parser
 
 
 class Rss(SiteRendering):
-
     def process(self, unused, site, config):
         template_name = config.template
 
@@ -23,8 +22,7 @@ class Rss(SiteRendering):
 
         # custom parser
         parser_tpl_path = Path(config.parser.template_dir)
-        config.parser.templates_path = (site.config.root_dir /
-                                        parser_tpl_path)
+        config.parser.templates_path = (site.config.root_dir / parser_tpl_path)
         config.parser = Parser.make_config(config.parser)
         parser = Parser(config.parser, site)
 
@@ -36,13 +34,17 @@ class Rss(SiteRendering):
             posts.append(post)
 
         # sort posts from newer to older
-        def k(x): return x.meta.creation_date_ts
+        def k(x):
+            return x.meta.creation_date_ts
+
         posts.sort(key=k, reverse=True)
 
         for post in posts:
-            if (post.meta.hidden or ((post.meta.microdata_type != "BlogPosting")  # noqa
-                                     and (post.meta.microdata_type != "ScholarlyArticle")  # noqa
-                                     and (post.meta.microdata_type != "PublicationEvent"))):  # noqa
+            if (post.meta.hidden or
+                ((post.meta.microdata_type != "BlogPosting")  # noqa
+                 and (post.meta.microdata_type != "ScholarlyArticle")  # noqa
+                 and
+                 (post.meta.microdata_type != "PublicationEvent"))):  # noqa
                 continue
 
             # parse the post with a customized parser
@@ -52,15 +54,25 @@ class Rss(SiteRendering):
             post.rss = parsed_post.html
 
             formatted_rss_creation_date = datetime.fromtimestamp(
-                int(post.meta.creation_date_ts)).strftime('%Y-%m-%dT%H:%M:%SZ')
+                int(post.meta.creation_date_ts)).strftime(
+                    '%a, %d %b %Y %H:%M:%S -0800')
             if post.meta.update_date_ts:
-                formatted_rss_update_date = datetime.fromtimestamp(int(
-                    post.meta.update_date_ts)).strftime('%Y-%m-%dT%H:%M:%SZ')
+                formatted_rss_update_date = datetime.fromtimestamp(
+                    int(post.meta.update_date_ts)).strftime(
+                        '%a, %d %b %Y %H:%M:%S -0800')
             else:
                 formatted_rss_update_date = formatted_rss_creation_date
 
             post.meta.formatted_creation = formatted_rss_creation_date
             post.meta.formatted_update = formatted_rss_update_date
+
+            # size of image
+            post.meta.banner_size = site.plugin_data['image_info'][
+                post.meta.banner]['file_size']
+            post.meta.banner_mimetype = site.plugin_data['image_info'][
+                post.meta.banner]['mime_type']
+            post.meta.banner_fullurl = "%s%s" % (site.config.url,
+                                                 post.meta.banner)
 
             post.meta.author = post.meta.authors[0].replace(",", "")
             rss_items.append(post)
@@ -81,6 +93,6 @@ class Rss(SiteRendering):
         path = site.get_output_dir()
         files.write_file(path, 'rss.xml', rv)
 
-        log_info = "template used:%s<br>ouput:%srss.xml" % (
-            template_name, path)
+        log_info = "template used:%s<br>ouput:%srss.xml" % (template_name,
+                                                            path)
         return SiteFab.OK, "rss", log_info

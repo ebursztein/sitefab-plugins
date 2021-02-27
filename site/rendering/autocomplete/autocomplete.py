@@ -14,28 +14,29 @@ class Autocomplete(SiteRendering):
     # @profile
     def process(self, unused, site, config):
         plugin_name = "autocomplete"
+        json_filename = "autocomplete.json"
         js_filename = "autocomplete.js"
-
         # configuration
-        output_path = config.output_path
+        output_path_js = config.output_path_js
+        output_path_json = config.output_path_json
         num_suggestions = config.num_suggestions
         excluded_terms = config.excluded_terms
 
-        log_info = "base javascript: %s<br>ouput:%s%s" % (
-            js_filename, output_path, js_filename)
+        log_info = ""
+        # log_info = "base javascript: %s<br>ouput:%s%s" % (
+        #     js_filename, output_path_js, js_filename)
 
         # Reading the base JS
         plugin_dir = Path(__file__).parent
+        json_file = plugin_dir / json_filename
+        jsondata = files.read_file(json_file)
+        
         js_file = plugin_dir / js_filename
-        js = files.read_file(js_file)
-        if not js or len(js) < 10:
-            return (SiteFab.ERROR, plugin_name, ("Base Javascript:%s not found\
-                                                 or too small." % js_file))
-
+        jsdata = files.read_file(js_file)
+      
         term_post_frequency = defaultdict(int)
         term_score = defaultdict(float)
         for post in site.posts:
-
             # authors
             for author in post.nlp.clean_fields.authors:
                 term_post_frequency[author] += 1
@@ -76,11 +77,16 @@ class Autocomplete(SiteRendering):
 
         # replacing placeholder with computation result
         output_string = json.dumps(output)
-        js = js.replace("AUTOCOMPLETE_PLUGIN_REPLACE", output_string)
+        jsondata = jsondata.replace("AUTOCOMPLETE_PLUGIN_REPLACE", output_string)
 
         # output
-        path = site.get_output_dir() / output_path
-        log_info += "<br> output directory: %s" % path
-        files.write_file(path, js_filename, js)
+        path_js = site.get_output_dir() / output_path_js
+        path_json = site.get_output_dir() / output_path_json
+        log_info += "<br> output directory for js: %s" % path_js
+        log_info += "<br> output directory for json: %s" % path_json
+        # write js data file
+        files.write_file(path_js, js_filename, jsdata)
+        # write code file
+        files.write_file(path_json, json_filename, jsondata)
 
         return (SiteFab.OK, plugin_name, log_info)

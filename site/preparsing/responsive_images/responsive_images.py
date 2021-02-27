@@ -35,10 +35,15 @@ def generate_thumbnails(bundle):
 
     results = []  # returned info
     log_table = []
+    
     for image_info in images:
         start_process_ts = time.time()
         log_row = [image_info['disk_path']]
         resize_list = {}
+        if image_info['extension'] in ['PNG', 'GIF']:
+            webp_lossless = True
+        else:
+            webp_lossless = False
 
         # extensions
         requested_extensions = set()
@@ -109,7 +114,9 @@ def generate_thumbnails(bundle):
                     resized_img = img.resize((requested_width,
                                               requested_height), Image.LANCZOS)
 
-                    img_io = convert_image(resized_img, pil_extension_codename)
+                    img_io = convert_image(resized_img,
+                                           pil_extension_codename,
+                                           webp_lossless=webp_lossless)
 
                     # store in the cache
                     cached_value[cache_secondary_key] = img_io
@@ -232,7 +239,8 @@ class ResponsiveImages(SitePreparsing):
                     if key not in allsizes[size]:
                         allsizes[size][key] = {}
                     allsizes[size][key] = img_path
-               
+                    if key == 'original':
+                        last = img_path
                 srcsets[key] = {
                     'srcset': ", ".join(srcset),
                     'format': webformat
@@ -242,7 +250,8 @@ class ResponsiveImages(SitePreparsing):
                                        "media": '(max-width: %spx)' % width,
                                        "sizes": '(max-width: %spx)' % width,
                                        "hash": img_hash,
-                                       "allsizes": allsizes
+                                       "allsizes": allsizes,
+                                       "last": last
                                        }
         log += pprint.pformat(resize_images)
         # configuring the parser to make use of the resize images

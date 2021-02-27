@@ -44,6 +44,7 @@ class Bibtex(PostProcessor):
             year = date.fromtimestamp(post.meta.conference_date_ts).year
             id_publication = "%s%s%s" % (first_author_lastname, year, post.meta.title[:5])
             id_publication = id_publication.upper().replace("-", "")
+
             authors = (" and ").join(authors_okay)
 
             bibtex_data = "@inproceedings{%s, " \

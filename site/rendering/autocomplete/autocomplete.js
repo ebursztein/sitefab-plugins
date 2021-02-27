@@ -72,9 +72,6 @@ Octopi.prototype = {
   }
 };
 
-//Search core code
-var trie_data = AUTOCOMPLETE_PLUGIN_REPLACE;
-
 var Autocomplete = function() {
   this.oct = new Octopi();
 };
@@ -101,6 +98,4 @@ Autocomplete.prototype = {
   }
 };
 
-// Export needed functions/data to the global context
-window.Autocomplete = Autocomplete;
-window.trie_data = trie_data;
+module.exports = Autocomplete
