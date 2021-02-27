@@ -34,6 +34,9 @@ class Thumbnails(SitePreparsing):
             return (SiteFab.ERROR, plugin_name, log)
         images = site.plugin_data['image_info'].values()
 
+        from pprint import pprint
+        i = site.plugin_data['image_info']['/static/images/banner/i-am-a-legend-hacking-hearthstone-using-statistical-learning-methods.jpg']
+
         # processing images
         thumbs = {}
         thumbs_info = {}  # metadata added to image_info for further processing
@@ -222,7 +225,7 @@ class Thumbnails(SitePreparsing):
                     "disk_path": output_disk_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
                     "disk_dir": output_disk_path.parents[0], # noqa path on disk without filename: /user/elie/site/img/
 
-                    "web_path": img_info['web_path'],           # noqa image url: /static/img/photo.jpg
+                    "web_path": output_web_path,           # noqa image url: /static/img/photo.jpg
                     "web_dir": img_info['web_dir'],             # noqa path of the site: /static/img/
 
                     "pil_extension": pil_ext,  # noqa image type in PIl: JPEG
@@ -240,11 +243,10 @@ class Thumbnails(SitePreparsing):
             cache_timing["writing"] += time.time() - start_set
 
             thumbs[img_info['web_path']] = thumb
-
-        # expose the list of resized images
-        site.plugin_data['thumbnails'] = thumbs
         cache.close()
 
+        # expose the list of thumbnails images
+        site.plugin_data['thumbnails'] = thumbs
         site.plugin_data['image_info'].update(thumbs_info)
 
         # FIXME: add counter output
