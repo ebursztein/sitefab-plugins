@@ -6,7 +6,7 @@ Dependencies =  copy_dir
 [Documentation]
 Description = Compute various images metadata.
 Filename = README.md
-Version = 1.1
+Version = 1.2
 
 [Configuration]
 Filename = "config.yaml"

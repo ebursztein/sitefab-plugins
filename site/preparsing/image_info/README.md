@@ -4,7 +4,8 @@ Compute various statistics for each images that can be used in templates and are
 
 ## Usage
 
-Just enable it then information will be availabe under the plugin info.
+Just enable it and image information will be availabe under the plugin info as
+a dictionnary.
 
 ### Access from python
 
@@ -25,8 +26,9 @@ This plugin requires the [Pillow python package](https://python-pillow.org/).
 
 ## Changlog
 
-- 29/12/19 Refactored for new plugin system and python 3.
-- 06/02/17 initial version
+- 03/14/21 Added dominant color.
+- 12/29/19 Refactored for new plugin system and python 3.
+- 06/02/17 initial version.
 
 ## Credit
 
