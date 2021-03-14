@@ -1,4 +1,3 @@
-import os
 from multiprocessing import Pool
 from itertools import repeat
 

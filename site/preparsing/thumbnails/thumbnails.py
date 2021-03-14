@@ -34,9 +34,6 @@ class Thumbnails(SitePreparsing):
             return (SiteFab.ERROR, plugin_name, log)
         images = site.plugin_data['image_info'].values()
 
-        from pprint import pprint
-        i = site.plugin_data['image_info']['/static/images/banner/i-am-a-legend-hacking-hearthstone-using-statistical-learning-methods.jpg']
-
         # processing images
         thumbs = {}
         thumbs_info = {}  # metadata added to image_info for further processing

@@ -1,16 +1,16 @@
-import time
 import math
+import time
 from io import BytesIO
 
+from diskcache import Cache
 from PIL import Image
-from tabulate import tabulate
-from tqdm import tqdm
-
 from sitefab import files
-from sitefab.image import normalize_image_extension, read_image_bytes
-from sitefab.image import image_hash
+from sitefab.image import (image_hash, normalize_image_extension,
+                           read_image_bytes)
 from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
+from tabulate import tabulate
+from tqdm import tqdm
 
 
 class ImageInfo(SitePreparsing):
@@ -24,6 +24,10 @@ class ImageInfo(SitePreparsing):
         plugin_name = "image_info"
         input_dir = site.config.root_dir / config.input_dir
         site_output_dir = site.config.root_dir / site.config.dir.output
+        cache_file = site.config.root_dir / site.config.dir.cache / plugin_name
+
+        # open cache
+        cache = Cache(cache_file)
 
         # reading images list
         if not input_dir:
@@ -38,7 +42,7 @@ class ImageInfo(SitePreparsing):
 
         # processing images
         image_info = {}
-        progress_bar = tqdm(total=num_images, unit=' img', leave=False,
+        progress_bar = tqdm(total=num_images, unit='img', leave=False,
                             desc="Generating images stats")
         log_table = []
         for image_full_path in images:
@@ -62,19 +66,6 @@ class ImageInfo(SitePreparsing):
             raw_image = read_image_bytes(image_full_path)
 
             io_img = BytesIO(raw_image)
-            img = Image.open(io_img)
-
-            # width and height
-            width, height = img.size
-            row.append("%sx%s" % (width, height))
-
-            # Find dominante colors
-
-            ct = ColorThief(img)
-            dc = ct.get_color()
-            # convert color to web
-            dominant_color = "#" + "".join([hex(v)[2:] for v in dc])
-            img.close()
 
             # hash
             # we use the hash of the content to make sure we regnerate if
@@ -82,30 +73,53 @@ class ImageInfo(SitePreparsing):
             img_hash = image_hash(raw_image)
             row.append(img_hash)
 
-            image_info[web_path] = {
-                "filename": img_filename,       # noqa image filename without path: photo.jpg
-                "stem": img_stem,               # noqa image name without path and extension: photo
-                "extension": img_extension,     # noqa image extension: .jpg
+            cached_info = cache.get(img_hash)
 
-                "disk_path": image_full_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
-                "disk_dir": disk_dir,               # noqa path on disk without filename: /user/elie/site/img/
+            if cached_info:
+                # cached info available so just assign it
+                info = cached_info
+                row.append(0)
+            else:
+                # new image we are computing everything
+                img = Image.open(io_img)
 
-                "web_path": web_path,           # noqa image url: /static/img/photo.jpg
-                "web_dir": web_dir,             # noqa path of the site: /static/img/
+                # width and height
+                width, height = img.size
+                row.append("%sx%s" % (width, height))
 
-                "pil_extension": pil_extension_codename,  # noqa image type in PIl: JPEG
-                "mime_type": web_extension,               # noqa mime-type: image/jpeg
-                "width": width,
-                "height": height,
-                "file_size": file_size,
-                "hash": img_hash,
-                "dominant_color": dominant_color
-            }
+                # Find dominante color
+                ct = ColorThief(img)
+                dc = ct.get_color()
+                # convert color to web
+                dominant_color = "#" + "".join([hex(v)[2:] for v in dc])
+                img.close()
+
+                info = {
+                    "filename": img_filename,       # noqa image filename without path: photo.jpg
+                    "stem": img_stem,               # noqa image name without path and extension: photo
+                    "extension": img_extension,     # noqa image extension: .jpg
+
+                    "disk_path": image_full_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
+                    "disk_dir": disk_dir,               # noqa path on disk without filename: /user/elie/site/img/
+
+                    "web_path": web_path,           # noqa image url: /static/img/photo.jpg
+                    "web_dir": web_dir,             # noqa path of the site: /static/img/
+
+                    "pil_extension": pil_extension_codename,  # noqa image type in PIl: JPEG
+                    "mime_type": web_extension,               # noqa mime-type: image/jpeg
+                    "width": width,
+                    "height": height,
+                    "file_size": file_size,
+                    "hash": img_hash,
+                    "dominant_color": dominant_color
+                }
+
+                # logging
+                row.append(round(time.time() - start, 3))
+
+            image_info[info['web_path']] = info
             progress_bar.update(1)
             log_table.append(row)
-
-            # logging
-            row.append(round(time.time() - start, 3))
 
         log += tabulate(log_table, headers=['filename', 'size', 'hash',
                                             'process time'], tablefmt='html')
