@@ -159,10 +159,7 @@ class Jsonld(PostProcessor):
                             "name": str(post.meta.conference_name),
                             "location": location
                         }
-                        jsonld_data['publisher'] = {
-                            "@type": "Organization",
-                            "name": str(post.meta.conference_publisher)
-                        }
+                        jsonld_data['publisher'] = str(post.meta.conference_publisher)
 
                     if post.meta.microdata_type == "BlogPosting":
 
