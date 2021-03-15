@@ -114,6 +114,7 @@ class ImageInfo(SitePreparsing):
                     "dominant_color": dominant_color
                 }
 
+                cache.set(info['hash'], info)
                 # logging
                 row.append(round(time.time() - start, 3))
 
