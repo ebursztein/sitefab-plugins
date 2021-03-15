@@ -1,7 +1,7 @@
 import math
 import time
 from io import BytesIO
-
+from pathlib import Path
 from diskcache import Cache
 from PIL import Image
 from sitefab import files
@@ -99,8 +99,10 @@ class ImageInfo(SitePreparsing):
                     "stem": img_stem,               # noqa image name without path and extension: photo
                     "extension": img_extension,     # noqa image extension: .jpg
 
-                    "disk_path": image_full_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
-                    "disk_dir": disk_dir,               # noqa path on disk without filename: /user/elie/site/img/
+                    # !adding str() for serialization in cache.
+                    # !Path() called below
+                    "disk_path": str(image_full_path),   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
+                    "disk_dir": str(disk_dir),      # noqa path on disk without filename: /user/elie/site/img/
 
                     "web_path": web_path,           # noqa image url: /static/img/photo.jpg
                     "web_dir": web_dir,             # noqa path of the site: /static/img/
@@ -118,6 +120,9 @@ class ImageInfo(SitePreparsing):
                 # logging
                 row.append(round(time.time() - start, 3))
 
+            # !convert the disk_dir and disk path to Path()
+            info['disk_path'] = Path(info['disk_path'])
+            info['disk_dir'] = Path(info['disk_dir'])
             image_info[info['web_path']] = info
             progress_bar.update(1)
             log_table.append(row)
