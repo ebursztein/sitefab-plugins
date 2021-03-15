@@ -46,7 +46,11 @@ def extract_image_info(bundle):
     img_hash = image_hash(raw_image)
     row.append(img_hash)
 
-    cached_info = cache.get(img_hash)
+    # ! this cache_key take into account the name and content
+    # ! this not done in other plugins as we want to dedup computation
+    # ! if the filename is different but content the same.
+    cache_key = "%s:%s" % (image_full_path, image_hash)
+    cached_info = cache.get(cache_key)
 
     if cached_info:
         # cached info available so just assign it
@@ -71,7 +75,6 @@ def extract_image_info(bundle):
             "filename": img_filename,       # noqa image filename without path: photo.jpg
             "stem": img_stem,               # noqa image name without path and extension: photo
             "extension": img_extension,     # noqa image extension: .jpg
-
             # !adding str() for serialization in cache.
             # !Path() called below
             "disk_path": str(image_full_path),   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
