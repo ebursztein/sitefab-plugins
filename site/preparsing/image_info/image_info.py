@@ -11,6 +11,88 @@ from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
 from tabulate import tabulate
 from tqdm import tqdm
+from multiprocessing import Pool
+
+
+def extract_image_info(bundle):
+
+    image_full_path, cache_file, site_output_dir = bundle
+    # open cache
+    cache = Cache(cache_file)
+
+    row = [image_full_path]
+    disk_dir = image_full_path.parents[0]
+    img_filename = image_full_path.name
+    file_size = image_full_path.stat().st_size
+    # File info extraction
+    img_stem = image_full_path.stem
+    img_extension = image_full_path.suffix
+    pil_extension_codename, web_extension = normalize_image_extension(img_extension)  # noqa
+
+    # directories
+    web_path = str(image_full_path).replace(str(site_output_dir), "/")
+    web_path = web_path.replace('\\', '/').replace('//', '/')
+    web_dir = web_path.replace(img_filename, '')
+
+    # loading
+    start = time.time()
+    raw_image = read_image_bytes(image_full_path)
+
+    io_img = BytesIO(raw_image)
+
+    # hash
+    # we use the hash of the content to make sure we regnerate if
+    # the image content is different
+    img_hash = image_hash(raw_image)
+    row.append(img_hash)
+
+    cached_info = cache.get(img_hash)
+
+    if cached_info:
+        # cached info available so just assign it
+        info = cached_info
+        row.append(0)
+    else:
+        # new image we are computing everything
+        img = Image.open(io_img)
+
+        # width and height
+        width, height = img.size
+        row.append("%sx%s" % (width, height))
+
+        # Find dominant color
+        ct = ColorThief(img)
+        dc = ct.get_color()
+        # convert color to web
+        dominant_color = "#" + "".join([hex(v)[2:] for v in dc])
+        img.close()
+
+        info = {
+            "filename": img_filename,       # noqa image filename without path: photo.jpg
+            "stem": img_stem,               # noqa image name without path and extension: photo
+            "extension": img_extension,     # noqa image extension: .jpg
+
+            # !adding str() for serialization in cache.
+            # !Path() called below
+            "disk_path": str(image_full_path),   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
+            "disk_dir": str(disk_dir),      # noqa path on disk without filename: /user/elie/site/img/
+
+            "web_path": web_path,           # noqa image url: /static/img/photo.jpg
+            "web_dir": web_dir,             # noqa path of the site: /static/img/
+
+            "pil_extension": pil_extension_codename,  # noqa image type in PIl: JPEG
+            "mime_type": web_extension,               # noqa mime-type: image/jpeg
+            "width": width,
+            "height": height,
+            "file_size": file_size,
+            "hash": img_hash,
+            "dominant_color": dominant_color
+        }
+
+        cache.set(info['hash'], info)
+        # logging
+        row.append(round(time.time() - start, 3))
+    return info, row
 
 
 class ImageInfo(SitePreparsing):
@@ -23,11 +105,8 @@ class ImageInfo(SitePreparsing):
         errors = False
         plugin_name = "image_info"
         input_dir = site.config.root_dir / config.input_dir
-        site_output_dir = site.config.root_dir / site.config.dir.output
         cache_file = site.config.root_dir / site.config.dir.cache / plugin_name
-
-        # open cache
-        cache = Cache(cache_file)
+        site_output_dir = site.config.root_dir / site.config.dir.output
 
         # reading images list
         if not input_dir:
@@ -45,81 +124,30 @@ class ImageInfo(SitePreparsing):
         progress_bar = tqdm(total=num_images, unit='img', leave=False,
                             desc="Generating images stats")
         log_table = []
-        for image_full_path in images:
-            row = [image_full_path]
 
-            disk_dir = image_full_path.parents[0]
-            img_filename = image_full_path.name
-            file_size = image_full_path.stat().st_size
-            # File info extraction
-            img_stem = image_full_path.stem
-            img_extension = image_full_path.suffix
-            pil_extension_codename, web_extension = normalize_image_extension(img_extension)  # noqa
+        # compute info
+        # pack info for multiprocess
+        bundles = [[i, cache_file, site_output_dir] for i in images]
+        results = []
+        # allows non-multithread by setting threads to 1.
+        if site.config.threads > 1:
+            log += "Using multithreading: %s threads<br>" % (
+                site.config.threads)
+            tpool = Pool()
+            for data in tpool.imap_unordered(extract_image_info, bundles):
+                results.append(data)
+                progress_bar.update(1)
+            tpool.close()
+            tpool.join()
+        else:
+            for bundle in bundles:
+                results.append(extract_image_info(bundle))
+                progress_bar.update(1)
+        progress_bar.close()
 
-            # directories
-            web_path = str(image_full_path).replace(str(site_output_dir), "/")
-            web_path = web_path.replace('\\', '/').replace('//', '/')
-            web_dir = web_path.replace(img_filename, '')
-
-            # loading
-            start = time.time()
-            raw_image = read_image_bytes(image_full_path)
-
-            io_img = BytesIO(raw_image)
-
-            # hash
-            # we use the hash of the content to make sure we regnerate if
-            # the image content is different
-            img_hash = image_hash(raw_image)
-            row.append(img_hash)
-
-            cached_info = cache.get(img_hash)
-
-            if cached_info:
-                # cached info available so just assign it
-                info = cached_info
-                row.append(0)
-            else:
-                # new image we are computing everything
-                img = Image.open(io_img)
-
-                # width and height
-                width, height = img.size
-                row.append("%sx%s" % (width, height))
-
-                # Find dominante color
-                ct = ColorThief(img)
-                dc = ct.get_color()
-                # convert color to web
-                dominant_color = "#" + "".join([hex(v)[2:] for v in dc])
-                img.close()
-
-                info = {
-                    "filename": img_filename,       # noqa image filename without path: photo.jpg
-                    "stem": img_stem,               # noqa image name without path and extension: photo
-                    "extension": img_extension,     # noqa image extension: .jpg
-
-                    # !adding str() for serialization in cache.
-                    # !Path() called below
-                    "disk_path": str(image_full_path),   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
-                    "disk_dir": str(disk_dir),      # noqa path on disk without filename: /user/elie/site/img/
-
-                    "web_path": web_path,           # noqa image url: /static/img/photo.jpg
-                    "web_dir": web_dir,             # noqa path of the site: /static/img/
-
-                    "pil_extension": pil_extension_codename,  # noqa image type in PIl: JPEG
-                    "mime_type": web_extension,               # noqa mime-type: image/jpeg
-                    "width": width,
-                    "height": height,
-                    "file_size": file_size,
-                    "hash": img_hash,
-                    "dominant_color": dominant_color
-                }
-
-                cache.set(info['hash'], info)
-                # logging
-                row.append(round(time.time() - start, 3))
-
+        # store data
+        for data in results:
+            info, row = data
             # !convert the disk_dir and disk path to Path()
             info['disk_path'] = Path(info['disk_path'])
             info['disk_dir'] = Path(info['disk_dir'])
@@ -129,7 +157,6 @@ class ImageInfo(SitePreparsing):
 
         log += tabulate(log_table, headers=['filename', 'size', 'hash',
                                             'process time'], tablefmt='html')
-        progress_bar.close()
 
         # make image info available to subsequent plugins
         site.plugin_data['image_info'] = image_info  # expose images info
