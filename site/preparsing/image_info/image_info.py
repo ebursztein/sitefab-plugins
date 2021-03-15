@@ -92,7 +92,7 @@ def extract_image_info(bundle):
             "dominant_color": dominant_color
         }
 
-        cache.set(info['hash'], info)
+        cache.set(cache_key, info)
         # logging
         row.append(round(time.time() - start, 3))
     return info, row
