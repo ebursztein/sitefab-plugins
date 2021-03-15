@@ -49,7 +49,7 @@ def extract_image_info(bundle):
     # ! this cache_key take into account the name and content
     # ! this not done in other plugins as we want to dedup computation
     # ! if the filename is different but content the same.
-    cache_key = "%s:%s" % (image_full_path, image_hash)
+    cache_key = "%s:%s" % (image_full_path, img_hash)
     cached_info = cache.get(cache_key)
 
     if cached_info:
@@ -92,9 +92,11 @@ def extract_image_info(bundle):
             "dominant_color": dominant_color
         }
 
-        cache.set(cache_key, info)
         # logging
         row.append(round(time.time() - start, 3))
+
+    cache.set(cache_key, info)
+    cache.close()
     return info, row
 
 
