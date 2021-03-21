@@ -35,15 +35,11 @@ def generate_thumbnails(bundle):
 
     results = []  # returned info
     log_table = []
-    
+
     for image_info in images:
         start_process_ts = time.time()
         log_row = [image_info['disk_path']]
         resize_list = {}
-        if image_info['extension'] in ['PNG', 'GIF']:
-            webp_lossless = True
-        else:
-            webp_lossless = False
 
         # extensions
         requested_extensions = set()
@@ -110,15 +106,17 @@ def generate_thumbnails(bundle):
                 if cache_secondary_key in cached_value:
                     img_io = cached_value[cache_secondary_key]
                 else:
+
                     # generate resized image as it is not in the cache.
                     resized_img = img.resize((requested_width,
                                               requested_height), Image.LANCZOS)
 
                     img_io = convert_image(resized_img,
                                            pil_extension_codename,
-                                           webp_lossless=webp_lossless)
+                                           webp_lossless=image_info['lossless']
+                                           )
 
-                    # store in the cache
+                    # store in the caches
                     cached_value[cache_secondary_key] = img_io
 
                 # writing to disk
@@ -188,7 +186,7 @@ class ResponsiveImages(SitePreparsing):
         # ensuring that the load will be uniformly split among the threads
         random.shuffle(images)
 
-        batch_size = 20
+        batch_size = 5
         batches = [images[x: x + batch_size] for x in range(0, len(images),
                                                             batch_size)]
 

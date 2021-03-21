@@ -38,8 +38,10 @@ class Thumbnails(SitePreparsing):
         thumbs = {}
         thumbs_info = {}  # metadata added to image_info for further processing
         num_thumbs = len(images) * len(thumbnail_sizes)
-        progress_bar = tqdm(total=num_thumbs, unit=' thumbnails',
-                            desc="Generating thumbnails", leave=False)
+        progress_bar = tqdm(total=num_thumbs,
+                            unit=' thumbnails',
+                            desc="Generating thumbnails",
+                            leave=False)
         for img_info in images:
             thumb = {}
             log += "<br><br><h2>%s</h2>" % (img_info['disk_path'])
@@ -55,8 +57,8 @@ class Thumbnails(SitePreparsing):
             else:
                 start = time.time()
                 raw_image = read_image_bytes(img_info['disk_path'])
-                log += "Image loading time:<i>%s</i><br>" % (round(time.time()
-                                                                   - start, 5))
+                log += "Image loading time:<i>%s</i><br>" % (round(
+                    time.time() - start, 5))
                 cached_version = {}
                 cached_version['raw_image'] = raw_image
 
@@ -64,9 +66,8 @@ class Thumbnails(SitePreparsing):
             for thumb_width, thumb_height in thumbnail_sizes:
                 thumb_key = "%sx%s" % (thumb_width, thumb_height)
                 log += "<h3>%s</h3>" % (thumb_key)
-                output_filename = "%s-thumb-%s%s" % (img_info['stem'],
-                                                     thumb_key,
-                                                     img_info['extension'])
+                output_filename = "%s-thumb-%s%s" % (
+                    img_info['stem'], thumb_key, img_info['extension'])
 
                 output_disk_path = img_info['disk_dir'] / output_filename
                 output_web_path = img_info['web_dir'] + output_filename
@@ -117,8 +118,8 @@ class Thumbnails(SitePreparsing):
 
                     scaled_width = thumb_img.width
                     scaled_height = thumb_img.height
-                    log += "Image scaled to %sx%s<br>" % (
-                        scaled_width, scaled_height)
+                    log += "Image scaled to %sx%s<br>" % (scaled_width,
+                                                          scaled_height)
 
                     # cropping
                     top = 0.0
@@ -148,9 +149,8 @@ class Thumbnails(SitePreparsing):
                             right = 1.0
 
                         log += "baricenter:%s, reduction_factor:%s, center:%s,\
-                                left:%s, right:%s<br>" % (baricenter,
-                                                          reduction_factor,
-                                                          center, left, right)
+                                left:%s, right:%s<br>" % (
+                            baricenter, reduction_factor, center, left, right)
 
                     # cut height
                     ratio_height = thumb_height / float(scaled_height)
@@ -197,14 +197,17 @@ class Thumbnails(SitePreparsing):
 
                     thumb_img = thumb_img.crop(
                         [left_pixel, top_pixel, right_pixel, bottom_pixel])
-                    log += "thumbnail size: %sx%s<br>" % (
-                        thumb_img.width, thumb_img.height)
+                    log += "thumbnail size: %sx%s<br>" % (thumb_img.width,
+                                                          thumb_img.height)
 
-                    thumb_io = convert_image(thumb_img, img_info['pil_extension'])
+                    thumb_io = convert_image(thumb_img,
+                                             img_info['pil_extension'],
+                                             webp_lossless=img_info['lossless']
+                                             )
                     cached_version[thumb_key] = thumb_io
 
-                    log += "thumbnail generation:%ss<br>" % (
-                        round(time.time() - start, 5))
+                    log += "thumbnail generation:%ss<br>" % (round(
+                        time.time() - start, 5))
 
                 # write image
                 save_image(thumb_io, output_disk_path)
@@ -214,19 +217,24 @@ class Thumbnails(SitePreparsing):
                 extension = output_disk_path.suffix
                 pil_ext, web_ext = normalize_image_extension(extension)
 
+                # should the image be considered lossless?
+                if extension in ['.png', '.gif']:
+                    lossless = True
+                else:
+                    lossless = False
+
+                # FIXME: unify with image info plugibs
                 thumbs_info[output_web_path] = {
-                    "filename": output_disk_path.name,       # noqa image filename without path: photo.jpg
-                    "stem": output_disk_path.stem,               # noqa image name without path and extension: photo
-                    "extension": extension,     # noqa image extension: .jpg
-
-                    "disk_path": output_disk_path,   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
-                    "disk_dir": output_disk_path.parents[0], # noqa path on disk without filename: /user/elie/site/img/
-
-                    "web_path": output_web_path,           # noqa image url: /static/img/photo.jpg
-                    "web_dir": img_info['web_dir'],             # noqa path of the site: /static/img/
-
+                    "filename": output_disk_path.name,  # noqa image filename without path: photo.jpg
+                    "stem": output_disk_path.stem,  # noqa image name without path and extension: photo
+                    "extension": extension,  # noqa image extension: .jpg
+                    "disk_path": output_disk_path,  # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
+                    "disk_dir": output_disk_path.parents[0],  # noqa path on disk without filename: /user/elie/site/img/
+                    "web_path": output_web_path,  # noqa image url: /static/img/photo.jpg
+                    "web_dir": img_info['web_dir'],  # noqa path of the site: /static/img/
                     "pil_extension": pil_ext,  # noqa image type in PIl: JPEG
                     "mime_type": web_ext,  # noqa mime-type: image/jpeg
+                    "lossless": lossless,
                     "width": thumb_width,
                     "height": thumb_height,
                     "file_size": output_disk_path.stat().st_size,

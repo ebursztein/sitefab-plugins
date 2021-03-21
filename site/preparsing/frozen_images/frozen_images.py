@@ -78,7 +78,8 @@ class FrozenImages(SitePreparsing):
                 frozen_height = int(height * ratio)  # preserve the ratio
                 resized_img = img.resize((frozen_width, frozen_height))
 
-                # convert to make blur working (avoid saving thus)
+                # convert to make blur working for frozen
+                # ! don't do this for normal images :)
                 resized_img = convert_image(resized_img, 'JPEG',
                                             return_as_bytesio=False)
 

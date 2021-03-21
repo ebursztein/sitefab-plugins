@@ -29,7 +29,8 @@ def resize_image(data):
     row = [img_info['disk_path']]
 
     if img_info['width'] < max_width:
-        log_str = "Image width %s < max_width: %s skipping" % (img_info['width'], max_width)
+        log_str = "Width %s < max_width: %s skipping" % (img_info['width'],
+                                                         max_width)
         return img_path, log_str, row, width, height, file_size, file_hash
 
     # cache fetch
@@ -68,7 +69,8 @@ def resize_image(data):
         extension_codename = img_info['pil_extension']
         resized_img_io = convert_image(resized_img, extension_codename,
                                        jpeg_quality=jpeg_quality,
-                                       webp_quality=webp_quality)
+                                       webp_quality=webp_quality,
+                                       webp_lossless=img_info['lossless'])
 
         cached_version['max_width'] = max_width
         cached_version['resized_img'] = resized_img_io
@@ -113,8 +115,11 @@ class ImageResizer(SitePreparsing):
         cpu_count = config.threads
         p = Pool(cpu_count)
 
-        site_data = (cache_file, config.max_width, config.jpeg_quality, config.webp_quality)
-        for img_path, log_str, row, width, height, file_size, file_hash in p.imap_unordered(resize_image, zip(images, repeat(site_data))):
+        site_data = (cache_file, config.max_width, config.jpeg_quality,
+                     config.webp_quality)
+
+        # multithreaded loop
+        for img_path, log_str, row, width, height, file_size, file_hash in p.imap_unordered(resize_image, zip(images, repeat(site_data))):  # noqa
             log += log_str
             log_table.append(row)
             if width != 0:

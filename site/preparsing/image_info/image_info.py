@@ -71,20 +71,28 @@ def extract_image_info(bundle):
         dominant_color = "#" + "".join([hex(v)[2:] for v in dc])
         img.close()
 
+        # should the image be considered lossless?
+        if img_extension in ['.png', '.gif']:
+            lossless = True
+        else:
+            lossless = False
+
         info = {
-            "filename": img_filename,       # noqa image filename without path: photo.jpg
-            "stem": img_stem,               # noqa image name without path and extension: photo
-            "extension": img_extension,     # noqa image extension: .jpg
+            "filename": img_filename,    # filename without path: photo.jpg
+            "stem": img_stem,            # name wo path and extension: photo
+            "extension": img_extension,  # image extension: .jpg
+
+
             # !adding str() for serialization in cache.
             # !Path() called below
             "disk_path": str(image_full_path),   # noqa path on disk with filename: /user/elie/site/content/img/photo.jpg
-            "disk_dir": str(disk_dir),      # noqa path on disk without filename: /user/elie/site/img/
+            "disk_dir": str(disk_dir),           # noqa path on disk without filename: /user/elie/site/img/
+            "web_path": web_path,                # noqa image url: /static/img/photo.jpg
+            "web_dir": web_dir,                  # noqa path of the site: /static/img/
 
-            "web_path": web_path,           # noqa image url: /static/img/photo.jpg
-            "web_dir": web_dir,             # noqa path of the site: /static/img/
-
-            "pil_extension": pil_extension_codename,  # noqa image type in PIl: JPEG
-            "mime_type": web_extension,               # noqa mime-type: image/jpeg
+            "pil_extension": pil_extension_codename,  # image type in PIl: JPEG
+            "mime_type": web_extension,               # mime-type: image/jpeg
+            "lossless": lossless,                     # image is lossless
             "width": width,
             "height": height,
             "file_size": file_size,
