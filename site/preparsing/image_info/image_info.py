@@ -11,7 +11,7 @@ from sitefab.plugins import SitePreparsing
 from sitefab.SiteFab import SiteFab
 from tabulate import tabulate
 from tqdm import tqdm
-from multiprocessing import Pool
+from multiprocessing import get_context
 
 
 def extract_image_info(bundle):
@@ -146,7 +146,8 @@ class ImageInfo(SitePreparsing):
         if site.config.threads > 1:
             log += "Using multithreading: %s threads<br>" % (
                 site.config.threads)
-            tpool = Pool()
+
+            tpool = get_context("fork").Pool(site.config.threads)  # fix for mac
             for data in tpool.imap_unordered(extract_image_info, bundles):
                 results.append(data)
                 progress_bar.update(1)

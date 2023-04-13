@@ -1,4 +1,4 @@
-from multiprocessing import Pool
+from multiprocessing import get_context
 from itertools import repeat
 
 from PIL import Image
@@ -112,8 +112,7 @@ class ImageResizer(SitePreparsing):
                             desc="Resizing images", leave=False)
 
         log_table = []
-        cpu_count = config.threads
-        p = Pool(cpu_count)
+        p = get_context("fork").Pool(config.threads)
 
         site_data = (cache_file, config.max_width, config.jpeg_quality,
                      config.webp_quality)

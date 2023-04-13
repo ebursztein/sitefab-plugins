@@ -3,7 +3,7 @@ import random
 import time
 from io import BytesIO
 from itertools import repeat
-from multiprocessing import Pool
+from multiprocessing import get_context
 from tabulate import tabulate
 
 from diskcache import Cache as dc
@@ -197,7 +197,8 @@ class ResponsiveImages(SitePreparsing):
         if site.config.threads > 1:
             log += "Using multithreading: %s threads<br>" % (
                 site.config.threads)
-            tpool = Pool()
+
+            tpool = get_context("fork").Pool(site.config.threads)
             for data in tpool.imap_unordered(generate_thumbnails, bundles):
                 results.extend(data)
                 progress_bar.update(batch_size)
